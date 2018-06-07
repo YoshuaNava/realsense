@@ -8,6 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     sensor_msgs
     std_msgs
+    librealsense2
     nodelet
     cv_bridge
     image_transport
@@ -95,7 +96,6 @@ add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 
 target_link_libraries(${PROJECT_NAME}
-    realsense2
     ${catkin_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     )
