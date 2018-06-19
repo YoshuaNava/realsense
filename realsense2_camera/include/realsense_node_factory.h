@@ -8,26 +8,26 @@
 #include <image_transport/image_transport.h>
 #include <ros/ros.h>
 #include <ros/package.h>
-#include <librealsense2/rs.hpp>
-#include <librealsense2/rsutil.h>
-#include <librealsense2/hpp/rs_processing.hpp>
-#include <librealsense2/rs_advanced_mode.hpp>
+#include <any_librealsense2/rs.hpp>
+#include <any_librealsense2/rsutil.h>
+#include <any_librealsense2/hpp/rs_processing.hpp>
+#include <any_librealsense2/rs_advanced_mode.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <sensor_msgs/CameraInfo.h>
 #include <sensor_msgs/PointCloud2.h>
 #include <sensor_msgs/point_cloud2_iterator.h>
 #include <constants.h>
-#include <realsense2_camera/Extrinsics.h>
+#include <any_realsense2_camera/Extrinsics.h>
 #include <tf/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <sensor_msgs/Imu.h>
-#include <realsense2_camera/IMUInfo.h>
+#include <any_realsense2_camera/IMUInfo.h>
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
 
 
-namespace realsense2_camera
+namespace any_realsense2_camera
 {
     const stream_index_pair COLOR{RS2_STREAM_COLOR, 0};
     const stream_index_pair DEPTH{RS2_STREAM_DEPTH, 0};

@@ -5,15 +5,15 @@
 
 #include "../include/realsense_node_factory.h"
 #include <dynamic_reconfigure/server.h>
-#include <realsense2_camera/base_d400_paramsConfig.h>
-#include <realsense2_camera/rs415_paramsConfig.h>
-#include <realsense2_camera/rs435_paramsConfig.h>
+#include <any_realsense2_camera/base_d400_paramsConfig.h>
+#include <any_realsense2_camera/rs415_paramsConfig.h>
+#include <any_realsense2_camera/rs435_paramsConfig.h>
 
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/update_functions.h>
 
 
-namespace realsense2_camera
+namespace any_realsense2_camera
 {
     enum base_depth_param{
         base_depth_gain = 1,
