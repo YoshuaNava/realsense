@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 2.8.3)
-project(realsense2_camera)
+project(any_realsense2_camera)
 
 option(BUILD_WITH_OPENMP "Use OpenMP" OFF)
 
@@ -8,7 +8,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     sensor_msgs
     std_msgs
-    librealsense2
+    any_librealsense2
     nodelet
     cv_bridge
     image_transport
@@ -69,7 +69,7 @@ generate_dynamic_reconfigure_options(
 # RealSense ROS Node
 catkin_package(
     LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS message_runtime roscpp sensor_msgs std_msgs librealsense2
+    CATKIN_DEPENDS message_runtime roscpp sensor_msgs std_msgs any_librealsense2
     nodelet
     cv_bridge
     image_transport
