@@ -1,7 +1,7 @@
 #include "../include/base_realsense_node.h"
 #include "../include/sr300_node.h"
 
-using namespace any_realsense2_camera;
+using namespace realsense2_camera;
 
 std::string BaseRealSenseNode::getNamespaceStr()
 {

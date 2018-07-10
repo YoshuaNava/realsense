@@ -1,6 +1,6 @@
 #include "../include/rs415_node.h"
 
-using namespace any_realsense2_camera;
+using namespace realsense2_camera;
 
 
 RS415Node::RS415Node(ros::NodeHandle& nodeHandle,

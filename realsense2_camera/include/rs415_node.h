@@ -4,9 +4,9 @@
 #pragma once
 
 #include "../include/base_realsense_node.h"
-#include <any_realsense2_camera/rs415_paramsConfig.h>
+#include <realsense2_camera/rs415_paramsConfig.h>
 
-namespace any_realsense2_camera
+namespace realsense2_camera
 {
     enum rs415_param{
         rs415_depth_enable_auto_white_balance = 9,

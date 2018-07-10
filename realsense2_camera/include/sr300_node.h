@@ -4,9 +4,9 @@
 #pragma once
 
 #include "../include/base_realsense_node.h"
-#include <any_realsense2_camera/sr300_paramsConfig.h>
+#include <realsense2_camera/sr300_paramsConfig.h>
 
-namespace any_realsense2_camera
+namespace realsense2_camera
 {
     enum sr300_param{
         sr300_param_color_backlight_compensation = 1,
