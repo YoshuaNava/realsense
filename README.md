@@ -1,3 +1,16 @@
+# NOTE: This is a fork from the official repository
+
+**The following changes have been done:**
+
+* Caktinized librealsense2
+* Implemented workaround for the depth auto-expsosure not being initialized correctly
+
+Build with
+
+    catkin build realsense2_camera
+
+-----------------
+
 # ROS Wrapper for Intel&reg; RealSense&trade; Devices
 These are packages for using Intel RealSense cameras (D400 series and the SR300) with ROS.
 
