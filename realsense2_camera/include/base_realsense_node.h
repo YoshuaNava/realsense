@@ -161,6 +161,7 @@ namespace realsense2_camera
         bool _align_depth;
         bool _sync_frames;
         bool _pointcloud;
+        double _ros_time_offset = 0.0;
         rs2::asynchronous_syncer _syncer;
 
         std::map<stream_index_pair, cv::Mat> _depth_aligned_image;
