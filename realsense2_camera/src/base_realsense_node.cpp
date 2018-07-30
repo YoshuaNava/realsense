@@ -105,6 +105,7 @@ void BaseRealSenseNode::getParameters()
     _pnh.param("enable_sync", _sync_frames, SYNC_FRAMES);
     if (_pointcloud || _align_depth)
         _sync_frames = true;
+    _pnh.param("ros_time_offset", _ros_time_offset, DEFAULT_ROS_TIME_OFFSET);
 
     _pnh.param("json_file_path", _json_file_path, std::string(""));
 
@@ -551,7 +552,7 @@ void BaseRealSenseNode::setupStreams()
 
                 ros::Time t;
                 if (_sync_frames)
-                    t = ros::Time::now();
+                    t = ros::Time::now() + ros::Duration(_ros_time_offset);
                 else
                     t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame.get_timestamp() - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
 
