@@ -9,6 +9,10 @@ Build with
 
     catkin build realsense2_camera
 
+Successfully tested with firmware 05.09.02.00 and 05.09.14.00.
+
+Instructions on how to update the firmware can be found on the [Intel homepage](https://downloadcenter.intel.com/download/27954/Latest-Firmware-for-Intel-RealSense-D400-Product-Family?v=t).
+
 -----------------
 
 # ROS Wrapper for Intel&reg; RealSense&trade; Devices
