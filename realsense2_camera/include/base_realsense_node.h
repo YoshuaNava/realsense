@@ -160,6 +160,7 @@ namespace realsense2_camera
         std::map<stream_index_pair, int> _image_format;
         std::map<stream_index_pair, rs2_format> _format;
         std::map<stream_index_pair, ros::Publisher> _info_publisher;
+        std::map<stream_index_pair, ros::Publisher> _timing_info_publisher;
         std::map<stream_index_pair, cv::Mat> _image;
         std::map<stream_index_pair, std::string> _encoding;
         std::map<stream_index_pair, std::vector<uint8_t>> _aligned_depth_images;
@@ -191,6 +192,7 @@ namespace realsense2_camera
         std::map<stream_index_pair, sensor_msgs::CameraInfo> _depth_aligned_camera_info;
         std::map<stream_index_pair, int> _depth_aligned_seq;
         std::map<stream_index_pair, ros::Publisher> _depth_aligned_info_publisher;
+        std::map<stream_index_pair, ros::Publisher> _depth_aligned_timing_info_publisher;
         std::map<stream_index_pair, ImagePublisherWithFrequencyDiagnostics> _depth_aligned_image_publishers;
         std::map<stream_index_pair, std::string> _depth_aligned_frame_id;
         std::map<stream_index_pair, ros::Publisher> _depth_to_other_extrinsics_publishers;

@@ -22,6 +22,7 @@
 #include <tf2_ros/static_transform_broadcaster.h>
 #include <sensor_msgs/Imu.h>
 #include <realsense2_camera/IMUInfo.h>
+#include <realsense2_camera/TimingInfo.h>
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>

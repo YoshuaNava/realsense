@@ -335,28 +335,32 @@ void BaseRealSenseNode::setupPublishers()
     {
         if (_enable[stream])
         {
-            std::stringstream image_raw, camera_info;
+            std::stringstream image_raw, camera_info, timing_info;
             bool rectified_image = false;
             if (stream == DEPTH || stream == INFRA1 || stream == INFRA2)
                 rectified_image = true;
 
             image_raw << _stream_name[stream] << "/image_" << ((rectified_image)?"rect_":"") << "raw";
             camera_info << _stream_name[stream] << "/camera_info";
+            timing_info << _stream_name[stream] << "/timing_info";
 
             std::shared_ptr<FrequencyDiagnostics> frequency_diagnostics(new FrequencyDiagnostics(_fps[stream], _stream_name[stream], _serial_no));
             _image_publishers[stream] = {image_transport.advertise(image_raw.str(), 1), frequency_diagnostics};
             _info_publisher[stream] = _node_handle.advertise<sensor_msgs::CameraInfo>(camera_info.str(), 1);
+            _timing_info_publisher[stream] = _node_handle.advertise<TimingInfo>(timing_info.str(), 1);
 
             if (_align_depth && (stream != DEPTH))
             {
-                std::stringstream aligned_image_raw, aligned_camera_info;
+                std::stringstream aligned_image_raw, aligned_camera_info, aligned_timing_info;
                 aligned_image_raw << "aligned_depth_to_" << _stream_name[stream] << "/image_raw";
                 aligned_camera_info << "aligned_depth_to_" << _stream_name[stream] << "/camera_info";
+                aligned_timing_info << "aligned_depth_to_" << _stream_name[stream] << "/timing_info";
 
                 std::string aligned_stream_name = "aligned_depth_to_" + _stream_name[stream];
                 std::shared_ptr<FrequencyDiagnostics> frequency_diagnostics(new FrequencyDiagnostics(_fps[stream], aligned_stream_name, _serial_no));
                 _depth_aligned_image_publishers[stream] = {image_transport.advertise(aligned_image_raw.str(), 1), frequency_diagnostics};
                 _depth_aligned_info_publisher[stream] = _node_handle.advertise<sensor_msgs::CameraInfo>(aligned_camera_info.str(), 1);
+                _depth_aligned_timing_info_publisher[stream] = _node_handle.advertise<TimingInfo>(aligned_timing_info.str(), 1);
             }
 
             if (stream == DEPTH && _pointcloud)
@@ -1354,6 +1358,9 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
     }
     auto& image = images[stream];
 
+    ros::Publisher timing_info_publisher = _timing_info_publisher[stream];
+    int64 img_publish_timestamp = -1;
+
     if (copy_data_from_frame)
     {
         if (images[stream].size() != cv::Size(width, height))
@@ -1366,8 +1373,9 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
     ++(seq[stream]);
     auto& info_publisher = info_publishers.at(stream);
     auto& image_publisher = image_publishers.at(stream);
-    if(0 != info_publisher.getNumSubscribers() ||
-       0 != image_publisher.first.getNumSubscribers())
+    // if(0 != info_publisher.getNumSubscribers() ||
+    //    0 != image_publisher.first.getNumSubscribers() ||
+    //    0 != timing_info_publisher.getNumSubscribers())
     {
         sensor_msgs::ImagePtr img;
         img = cv_bridge::CvImage(std_msgs::Header(), encoding.at(stream), image).toImageMsg();
@@ -1384,10 +1392,72 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         cam_info.header.seq = seq[stream];
         info_publisher.publish(cam_info);
 
+        img_publish_timestamp = ros::Time::now().toNSec() / 1000000;
         image_publisher.first.publish(img);
         image_publisher.second->update();
         ROS_DEBUG("%s stream published", rs2_stream_to_string(f.get_profile().stream_type()));
     }
+
+
+/* BEGIN - Timing info extraction and publishing */
+    std::string time_unit = "usec";
+    rs2_metadata_type sensor_timestamp, frame_timestamp, backend_timestamp,
+                      arrival_timestamp, frame_number, auto_exposure, exposure_time, device_fps;
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP))
+        sensor_timestamp = f.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP);
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP))
+        frame_timestamp = f.get_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP);
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP))
+        backend_timestamp = f.get_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP);
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL))
+        arrival_timestamp = f.get_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL);
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER))
+        frame_number = f.get_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER);
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_AUTO_EXPOSURE))
+        auto_exposure = f.get_frame_metadata(RS2_FRAME_METADATA_AUTO_EXPOSURE);
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE))
+        exposure_time = f.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE);
+    if(f.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_FPS))
+        device_fps = f.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_FPS);
+        
+    /*
+    std::stringstream metadata_received;
+    metadata_received << std::fixed << _namespace \
+        << " - " << _dev.get_info(RS2_CAMERA_INFO_NAME) << std::endl \
+        << "   channel: " << _stream_name[stream] << std::endl \
+        << "   time unit: " << time_unit << std::endl \
+        << "   sensor ts = " << int64(sensor_timestamp) << std::endl \
+        << "   frame ts = " << int64(frame_timestamp) << std::endl \
+        << "   backend ts = " << int64(backend_timestamp) << std::endl \
+        << "   arrival ts = " << int64(arrival_timestamp) << std::endl \
+        << "   publish ts = " << img_publish_timestamp << std::endl \
+        << "   frame number = " << int64(frame_number) << std::endl \
+        << "   device fps = " << double(device_fps) << std::endl \
+        << "   auto exposure enabled? = " << bool(auto_exposure) << std::endl \
+        << "   exposure time = " << int64(exposure_time) << std::endl \
+        << "   ROS frame sync enabled ? = " << _sync_frames << std::endl;
+    std::cout << metadata_received.str();
+    */
+
+    TimingInfo timing_info_msg;
+    timing_info_msg.header.stamp = t;
+    timing_info_msg.header.seq = seq[stream];
+    timing_info_msg.device_type = _dev.get_info(RS2_CAMERA_INFO_NAME);
+    timing_info_msg.device_name = _namespace;
+    timing_info_msg.channel = _stream_name[stream];
+    timing_info_msg.ros_sync_enabled = _sync_frames;
+    timing_info_msg.time_unit = time_unit;
+    timing_info_msg.sensor_timestamp = static_cast<int64>(sensor_timestamp);
+    timing_info_msg.frame_timestamp = static_cast<int64>(frame_timestamp);
+    timing_info_msg.backend_timestamp = static_cast<int64>(backend_timestamp);
+    timing_info_msg.arrival_timestamp = static_cast<int64>(arrival_timestamp);
+    timing_info_msg.publish_timestamp = img_publish_timestamp;
+    timing_info_msg.device_fps = static_cast<int64>(device_fps);
+    timing_info_msg.auto_exposure = static_cast<bool>(auto_exposure);
+    timing_info_msg.exposure_time = static_cast<int64>(exposure_time);
+    timing_info_msg.frame_number = static_cast<int64>(frame_number);
+    timing_info_publisher.publish(timing_info_msg);
+/* END - Timing info extraction and publishing */
 }
 
 bool BaseRealSenseNode::getEnabledProfile(const stream_index_pair& stream_index, rs2::stream_profile& profile)

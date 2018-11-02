@@ -50,6 +50,7 @@ add_message_files(
     FILES
     IMUInfo.msg
     Extrinsics.msg
+    TimingInfo.msg
     )
 
 generate_messages(
