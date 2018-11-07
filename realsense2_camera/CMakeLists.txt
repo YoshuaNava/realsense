@@ -15,6 +15,7 @@ find_package(catkin REQUIRED COMPONENTS
     tf
     dynamic_reconfigure
     diagnostic_updater
+    librealsense2
     )
 
 if(BUILD_WITH_OPENMP)
@@ -32,10 +33,10 @@ if(SET_USER_BREAK_AT_STARTUP)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBPDEBUG")
 endif()
 
-find_package(realsense2)
-if(NOT realsense2_FOUND)
-    message(FATAL_ERROR "\n\n Intel RealSense SDK 2.0 is missing, please install it from https://github.com/IntelRealSense/librealsense/releases\n\n")
-endif()
+#find_package(realsense2)
+#if(NOT realsense2_FOUND)
+#    message(FATAL_ERROR "\n\n Intel RealSense SDK 2.0 is missing, please install it from https://github.com/IntelRealSense/librealsense/releases\n\n")
+#endif()
 
 if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
     message(STATUS "Create Release Build.")
@@ -81,6 +82,7 @@ catkin_package(
     cv_bridge
     image_transport
     dynamic_reconfigure
+    librealsense2
     )
 
 add_library(${PROJECT_NAME}
