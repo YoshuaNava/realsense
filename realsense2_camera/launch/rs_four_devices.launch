@@ -1,5 +1,9 @@
 <?xml version="1.0"?>
 <launch>
+
+  <node pkg="tf" type="static_transform_publisher" name="link1_broadcaster" args="0 0 0 1.57 0 0 realsense_d435_left_camera_parent realsense_d435_right_camera_parent 100" />
+
+  <!-- Device parameters -->
   <arg name="serial_no_camera1"         default="752112070544"/>      <!-- Note: Replace with actual serial number -->
   <arg name="serial_no_camera2"         default="817512071705"/>      <!-- Note: Replace with actual serial number -->
   <arg name="serial_no_camera3"         default="817512071203"/>      <!-- Note: Replace with actual serial number -->
@@ -15,10 +19,81 @@
   <arg name="tf_prefix_camera3"             default="$(arg camera3)"/>
   <arg name="tf_prefix_camera4"             default="$(arg camera4)"/>
 
+
+  <!-- Streaming parameters -->
+  <arg name="fisheye_width"       default="640"/>
+  <arg name="fisheye_height"      default="480"/>
+  <arg name="enable_fisheye"      default="true"/>
+
+  <arg name="depth_width"         default="640"/>
+  <arg name="depth_height"        default="480"/>
+  <arg name="enable_depth"        default="true"/>
+
+  <arg name="infra1_width"        default="640"/>
+  <arg name="infra1_height"       default="480"/>
+  <arg name="enable_infra1"       default="true"/>
+
+  <arg name="infra2_width"        default="640"/>
+  <arg name="infra2_height"       default="480"/>
+  <arg name="enable_infra2"       default="true"/>
+
+  <arg name="color_width"         default="640"/>
+  <arg name="color_height"        default="480"/>
+  <arg name="enable_color"        default="false"/>
+
+  <arg name="fisheye_fps"         default="30"/>
+  <arg name="depth_fps"           default="30"/>
+  <arg name="infra1_fps"          default="30"/>
+  <arg name="infra2_fps"          default="30"/>
+  <arg name="color_fps"           default="30"/>
+
+  <arg name="enable_pointcloud"   default="true"/>
+  <arg name="pointcloud_texture_stream" default="RS2_STREAM_ANY"/>  <!-- use RS2_STREAM_ANY to avoid using texture -->
+
+  <arg name="ros_time_offset"     default="-0.16"/>
+  <arg name="timestamping_method" default="2"/>
+  <arg name="enable_sync"         default="false"/>
+  <arg name="align_depth"         default="false"/>
+
+
   <group ns="$(arg camera1)">
     <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
       <arg name="serial_no"     value="$(arg serial_no_camera1)"/>
       <arg name="tf_prefix"   value="$(arg tf_prefix_camera1)"/>
+
+      <param name="enable_pointcloud"        type="bool" value="$(arg enable_pointcloud)"/>
+      <param name="pointcloud_texture_stream" type="str" value="$(arg pointcloud_texture_stream)"/>
+
+      <param name="ros_time_offset"          type="double" value="$(arg ros_time_offset)"/>
+      <param name="timestamping_method"      type="int"  value="$(arg timestamping_method)"/>
+      <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
+      <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
+
+      <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
+      <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>
+      <param name="enable_fisheye"           type="bool" value="$(arg enable_fisheye)"/>
+
+      <param name="depth_width"              type="int"  value="$(arg depth_width)"/>
+      <param name="depth_height"             type="int"  value="$(arg depth_height)"/>
+      <param name="enable_depth"             type="bool" value="$(arg enable_depth)"/>
+
+      <param name="color_width"              type="int"  value="$(arg color_width)"/>
+      <param name="color_height"             type="int"  value="$(arg color_height)"/>
+      <param name="enable_color"             type="bool" value="$(arg enable_color)"/>
+
+      <param name="infra1_width"             type="int"  value="$(arg infra1_width)"/>
+      <param name="infra1_height"            type="int"  value="$(arg infra1_height)"/>
+      <param name="enable_infra1"            type="bool" value="$(arg enable_infra1)"/>
+
+      <param name="infra2_width"             type="int"  value="$(arg infra2_width)"/>
+      <param name="infra2_height"            type="int"  value="$(arg infra2_height)"/>
+      <param name="enable_infra2"            type="bool" value="$(arg enable_infra2)"/>
+
+      <param name="fisheye_fps"              type="int"  value="$(arg fisheye_fps)"/>
+      <param name="depth_fps"                type="int"  value="$(arg depth_fps)"/>
+      <param name="infra1_fps"               type="int"  value="$(arg infra1_fps)"/>
+      <param name="infra2_fps"               type="int"  value="$(arg infra2_fps)"/>
+      <param name="color_fps"                type="int"  value="$(arg color_fps)"/>
     </include>
   </group>
 
@@ -26,6 +101,37 @@
     <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
       <arg name="serial_no"     value="$(arg serial_no_camera2)"/>
       <arg name="tf_prefix"   value="$(arg tf_prefix_camera2)"/>
+
+      <param name="enable_pointcloud"        type="bool" value="$(arg enable_pointcloud)"/>
+      <param name="pointcloud_texture_stream" type="str" value="$(arg pointcloud_texture_stream)"/>
+      <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
+      <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
+
+      <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
+      <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>
+      <param name="enable_fisheye"           type="bool" value="$(arg enable_fisheye)"/>
+
+      <param name="depth_width"              type="int"  value="$(arg depth_width)"/>
+      <param name="depth_height"             type="int"  value="$(arg depth_height)"/>
+      <param name="enable_depth"             type="bool" value="$(arg enable_depth)"/>
+
+      <param name="color_width"              type="int"  value="$(arg color_width)"/>
+      <param name="color_height"             type="int"  value="$(arg color_height)"/>
+      <param name="enable_color"             type="bool" value="$(arg enable_color)"/>
+
+      <param name="infra1_width"             type="int"  value="$(arg infra1_width)"/>
+      <param name="infra1_height"            type="int"  value="$(arg infra1_height)"/>
+      <param name="enable_infra1"            type="bool" value="$(arg enable_infra1)"/>
+
+      <param name="infra2_width"             type="int"  value="$(arg infra2_width)"/>
+      <param name="infra2_height"            type="int"  value="$(arg infra2_height)"/>
+      <param name="enable_infra2"            type="bool" value="$(arg enable_infra2)"/>
+
+      <param name="fisheye_fps"              type="int"  value="$(arg fisheye_fps)"/>
+      <param name="depth_fps"                type="int"  value="$(arg depth_fps)"/>
+      <param name="infra1_fps"               type="int"  value="$(arg infra1_fps)"/>
+      <param name="infra2_fps"               type="int"  value="$(arg infra2_fps)"/>
+      <param name="color_fps"                type="int"  value="$(arg color_fps)"/>
     </include>
   </group>
 
@@ -33,6 +139,37 @@
     <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
       <arg name="serial_no"     value="$(arg serial_no_camera3)"/>
       <arg name="tf_prefix"   value="$(arg tf_prefix_camera3)"/>
+
+      <param name="enable_pointcloud"        type="bool" value="$(arg enable_pointcloud)"/>
+      <param name="pointcloud_texture_stream" type="str" value="$(arg pointcloud_texture_stream)"/>
+      <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
+      <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
+
+      <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
+      <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>
+      <param name="enable_fisheye"           type="bool" value="$(arg enable_fisheye)"/>
+
+      <param name="depth_width"              type="int"  value="$(arg depth_width)"/>
+      <param name="depth_height"             type="int"  value="$(arg depth_height)"/>
+      <param name="enable_depth"             type="bool" value="$(arg enable_depth)"/>
+
+      <param name="color_width"              type="int"  value="$(arg color_width)"/>
+      <param name="color_height"             type="int"  value="$(arg color_height)"/>
+      <param name="enable_color"             type="bool" value="$(arg enable_color)"/>
+
+      <param name="infra1_width"             type="int"  value="$(arg infra1_width)"/>
+      <param name="infra1_height"            type="int"  value="$(arg infra1_height)"/>
+      <param name="enable_infra1"            type="bool" value="$(arg enable_infra1)"/>
+
+      <param name="infra2_width"             type="int"  value="$(arg infra2_width)"/>
+      <param name="infra2_height"            type="int"  value="$(arg infra2_height)"/>
+      <param name="enable_infra2"            type="bool" value="$(arg enable_infra2)"/>
+
+      <param name="fisheye_fps"              type="int"  value="$(arg fisheye_fps)"/>
+      <param name="depth_fps"                type="int"  value="$(arg depth_fps)"/>
+      <param name="infra1_fps"               type="int"  value="$(arg infra1_fps)"/>
+      <param name="infra2_fps"               type="int"  value="$(arg infra2_fps)"/>
+      <param name="color_fps"                type="int"  value="$(arg color_fps)"/>
     </include>
   </group>
 
@@ -40,6 +177,37 @@
     <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
       <arg name="serial_no"     value="$(arg serial_no_camera4)"/>
       <arg name="tf_prefix"   value="$(arg tf_prefix_camera4)"/>
+
+      <param name="enable_pointcloud"        type="bool" value="$(arg enable_pointcloud)"/>
+      <param name="pointcloud_texture_stream" type="str" value="$(arg pointcloud_texture_stream)"/>
+      <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
+      <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
+
+      <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
+      <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>
+      <param name="enable_fisheye"           type="bool" value="$(arg enable_fisheye)"/>
+
+      <param name="depth_width"              type="int"  value="$(arg depth_width)"/>
+      <param name="depth_height"             type="int"  value="$(arg depth_height)"/>
+      <param name="enable_depth"             type="bool" value="$(arg enable_depth)"/>
+
+      <param name="color_width"              type="int"  value="$(arg color_width)"/>
+      <param name="color_height"             type="int"  value="$(arg color_height)"/>
+      <param name="enable_color"             type="bool" value="$(arg enable_color)"/>
+
+      <param name="infra1_width"             type="int"  value="$(arg infra1_width)"/>
+      <param name="infra1_height"            type="int"  value="$(arg infra1_height)"/>
+      <param name="enable_infra1"            type="bool" value="$(arg enable_infra1)"/>
+
+      <param name="infra2_width"             type="int"  value="$(arg infra2_width)"/>
+      <param name="infra2_height"            type="int"  value="$(arg infra2_height)"/>
+      <param name="enable_infra2"            type="bool" value="$(arg enable_infra2)"/>
+
+      <param name="fisheye_fps"              type="int"  value="$(arg fisheye_fps)"/>
+      <param name="depth_fps"                type="int"  value="$(arg depth_fps)"/>
+      <param name="infra1_fps"               type="int"  value="$(arg infra1_fps)"/>
+      <param name="infra2_fps"               type="int"  value="$(arg infra2_fps)"/>
+      <param name="color_fps"                type="int"  value="$(arg color_fps)"/>
     </include>
   </group>
 </launch>

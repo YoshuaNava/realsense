@@ -146,6 +146,8 @@ namespace realsense2_camera
         std::string _json_file_path;
         std::string _serial_no;
         float _depth_scale_meters;
+        int _timestamping_method;
+        double _ros_time_offset = 0.0;
 
         std::map<stream_index_pair, rs2_intrinsics> _stream_intrinsics;
         std::map<stream_index_pair, int> _width;

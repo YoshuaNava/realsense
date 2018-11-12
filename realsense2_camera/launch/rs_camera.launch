@@ -1,3 +1,4 @@
+<?xml version="1.0"?>
 <launch>
   <arg name="serial_no"           default=""/>
   <arg name="json_file_path"      default=""/>
@@ -22,7 +23,7 @@
 
   <arg name="color_width"         default="640"/>
   <arg name="color_height"        default="480"/>
-  <arg name="enable_color"        default="true"/>
+  <arg name="enable_color"        default="false"/>
 
   <arg name="fisheye_fps"         default="30"/>
   <arg name="depth_fps"           default="30"/>
@@ -33,12 +34,15 @@
   <arg name="accel_fps"           default="1000"/>
   <arg name="enable_imu"          default="true"/>
 
-  <arg name="enable_pointcloud"         default="false"/>
-  <arg name="pointcloud_texture_stream" default="RS2_STREAM_COLOR"/>
+  <arg name="enable_pointcloud"         default="true"/>
+  <arg name="pointcloud_texture_stream" default="RS2_STREAM_ANY"/>
   <arg name="pointcloud_texture_index"  default="0"/>
 
+  <arg name="ros_time_offset"     default="-0.16"/>
+  <arg name="timestamping_method" default="2"/>
   <arg name="enable_sync"         default="false"/>
   <arg name="align_depth"         default="false"/>
+
 
   <arg name="filters"             default=""/>
 
@@ -51,6 +55,9 @@
       <arg name="enable_pointcloud"        value="$(arg enable_pointcloud)"/>
       <arg name="pointcloud_texture_stream" value="$(arg pointcloud_texture_stream)"/>
       <arg name="pointcloud_texture_index"  value="$(arg pointcloud_texture_index)"/>
+
+      <arg name="ros_time_offset"          value="$(arg ros_time_offset)"/>
+      <arg name="timestamping_method"      value="$(arg timestamping_method)"/>
       <arg name="enable_sync"              value="$(arg enable_sync)"/>
       <arg name="align_depth"              value="$(arg align_depth)"/>
 

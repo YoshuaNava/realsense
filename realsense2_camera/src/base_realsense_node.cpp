@@ -148,8 +148,11 @@ void BaseRealSenseNode::getParameters()
     _pointcloud |= (_filters_str.find("pointcloud") != std::string::npos);
 
     _pnh.param("enable_sync", _sync_frames, SYNC_FRAMES);
-    if (_pointcloud || _align_depth || _filters_str.size() > 0)
-        _sync_frames = true;
+    // if (_pointcloud || _align_depth || _filters_str.size() > 0)
+        // _sync_frames = true;
+
+    _pnh.param("timestamping_method", _timestamping_method, DEFAULT_TIMESTAMPING_METHOD);
+    _pnh.param("ros_time_offset", _ros_time_offset, DEFAULT_ROS_TIME_OFFSET);
 
     _pnh.param("json_file_path", _json_file_path, std::string(""));
 
@@ -616,9 +619,76 @@ void BaseRealSenseNode::setupStreams()
 
                 ros::Time t;
                 if (_sync_frames)
+                {
                     t = ros::Time::now();
-                else
-                    t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame.get_timestamp() - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
+                }
+                else {
+                    double curr_t = ros::Time::now().toSec();
+                    ros::Time t_method_1, t_method_2, t_method_3, t_method_4;
+                    rs2_metadata_type frame_number=0, sensor_timestamp=0, frame_timestamp=0, backend_timestamp=0,
+                                        arrival_timestamp=0;
+                    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER))
+                        frame_number = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER);
+                    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP))
+                        sensor_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP);           // usec
+                    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP))
+                        frame_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP);             // usec
+                    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP))
+                        backend_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP);         // msec
+                    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL))
+                        arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL);           // msec
+
+
+                    // Method #1 - Baseline from driver - "Approximation from the left"    
+                    t_method_1 = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame.get_timestamp() - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
+
+                    // Method #2 - "Approximation from the right"
+                    double delta_time_device = frame_timestamp - sensor_timestamp;
+                    double delta_time_pc_host = arrival_timestamp - backend_timestamp;
+                    double sum_of_deltas = (delta_time_device + delta_time_pc_host) / 1000;  // msec
+                    t_method_2 = ros::Time( curr_t - (sum_of_deltas/1000) );
+
+                    // Method #3 - Average of methods 1 and 2 - "Central approximation"
+                    t_method_3 = ros::Time( (t_method_1.toSec() + t_method_2.toSec()) / 2 );
+
+                    // Method #4 - Fixed offset - ANYmal 2 solution
+                    t_method_4 = ros::Time::now() + ros::Duration(_ros_time_offset);
+
+                    switch(_timestamping_method) {
+                        case 1:
+                            t = t_method_1;
+                            break;
+                        case 2:
+                            t = t_method_2;
+                            break;
+                        case 3:
+                            t = t_method_3;
+                            break;
+                        case 4:
+                            t = t_method_4;
+                            break;
+                        default:
+                            ROS_WARN("RealSenseDriver: Unrecognized sync method code %i", _timestamping_method);
+                            t = t_method_1;
+                            break;
+                    }
+                    
+                    auto stream_type = frame.get_profile().stream_type();
+                    if(stream_type == RS2_STREAM_DEPTH) {
+                        std::stringstream timestamps_info;
+                        timestamps_info << std::fixed << stream_type << " Frame " << frame_number << " Timestamps:" << std::endl \
+                            << "   Method 1: " << t_method_1 << " s" << std::endl \
+                            << "   Method 2: " << t_method_2 << " s" <<  std::endl \
+                            << "        Sum of deltas: " << sum_of_deltas << " ms" << std::endl \
+                            << "   Method 3: " << t_method_3 << " s" << std::endl \
+                            << "   Method 4: " << t_method_4 << " s" << std::endl \
+                            << "        Fixed offset: " << _ros_time_offset << " s" << std::endl \
+                            << "   Chosen method: " << _timestamping_method << std::endl \
+                            << std::endl;
+
+                        std::cout << timestamps_info.str();
+                    }
+                }
 
                 std::map<stream_index_pair, bool> is_frame_arrived(_is_frame_arrived);
                 if (frame.is<rs2::frameset>())
@@ -716,7 +786,7 @@ void BaseRealSenseNode::setupStreams()
                         {
                             if (0 != _pointcloud_publisher.getNumSubscribers())
                             {
-                                ROS_DEBUG("Publish pointscloud");
+                                ROS_DEBUG("Publish pointcloud");
                                 publishPointCloud(f.as<rs2::points>(), t, frameset);
                             }
                             continue;
@@ -1392,7 +1462,7 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
         cam_info.header.seq = seq[stream];
         info_publisher.publish(cam_info);
 
-        img_publish_timestamp = ros::Time::now().toNSec() / 1000000;
+        img_publish_timestamp = t.toSec();
         image_publisher.first.publish(img);
         image_publisher.second->update();
         ROS_DEBUG("%s stream published", rs2_stream_to_string(f.get_profile().stream_type()));
@@ -1401,8 +1471,8 @@ void BaseRealSenseNode::publishFrame(rs2::frame f, const ros::Time& t,
 
 /* BEGIN - Timing info extraction and publishing */
     std::string time_unit = "usec";
-    rs2_metadata_type sensor_timestamp, frame_timestamp, backend_timestamp,
-                      arrival_timestamp, frame_number, auto_exposure, exposure_time, device_fps;
+    rs2_metadata_type sensor_timestamp=0, frame_timestamp=0, backend_timestamp=0,
+                      arrival_timestamp=0, frame_number=0, auto_exposure=0, exposure_time=0, device_fps=0;
     if(f.supports_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP))
         sensor_timestamp = f.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP);
     if(f.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP))
