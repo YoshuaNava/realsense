@@ -674,7 +674,7 @@ void BaseRealSenseNode::setupStreams()
                     }
                     
                     auto stream_type = frame.get_profile().stream_type();
-                    if(stream_type == RS2_STREAM_DEPTH) {
+                    if((stream_type == RS2_STREAM_DEPTH) && _print_stamping_info_) {
                         std::stringstream timestamps_info;
                         timestamps_info << std::fixed << stream_type << " Frame " << frame_number << " Timestamps:" << std::endl \
                             << "   Method 1: " << t_method_1 << " s" << std::endl \

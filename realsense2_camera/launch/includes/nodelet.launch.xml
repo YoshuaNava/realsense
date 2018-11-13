@@ -42,7 +42,7 @@
   <arg name="enable_imu"          default="false"/>
 
   <arg name="enable_pointcloud"   default="true"/>
-  <arg name="pointcloud_texture_stream" default="RS2_STREAM_COLOR"/>  <!-- use RS2_STREAM_ANY to avoid using texture -->
+  <arg name="pointcloud_texture_stream" default="RS2_STREAM_ANY"/>  <!-- use RS2_STREAM_ANY to avoid using texture -->
   <arg name="pointcloud_texture_index"  default="0"/>
 
   <arg name="ros_time_offset"     default="0.0"/>
