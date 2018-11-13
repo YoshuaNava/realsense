@@ -645,8 +645,8 @@ void BaseRealSenseNode::setupStreams()
                     // Method #2 - "Approximation from the right"
                     double delta_time_device = frame_timestamp - sensor_timestamp;
                     double delta_time_pc_host = arrival_timestamp - backend_timestamp;
-                    double sum_of_deltas = (delta_time_device + delta_time_pc_host) / 1000;  // msec
-                    t_method_2 = ros::Time( curr_t - (sum_of_deltas/1000) );
+                    double sum_of_deltas = (delta_time_device + delta_time_pc_host) / 1000.0f;        // ms
+                    t_method_2 = ros::Time( curr_t - (sum_of_deltas/1000.0f) );
 
                     // Method #3 - Average of methods 1 and 2 - "Central approximation"
                     t_method_3 = ros::Time( (t_method_1.toSec() + t_method_2.toSec()) / 2 );
@@ -679,10 +679,13 @@ void BaseRealSenseNode::setupStreams()
                         timestamps_info << std::fixed << stream_type << " Frame " << frame_number << " Timestamps:" << std::endl \
                             << "   Method 1: " << t_method_1 << " s" << std::endl \
                             << "   Method 2: " << t_method_2 << " s" <<  std::endl \
+                            << "        Delta processing (device): " << delta_time_device / 1000.0f  << " ms" << std::endl \
+                            << "        Delta kernel-user transition (PC): " << delta_time_pc_host / 1000.0f << " ms" << std::endl \
                             << "        Sum of deltas: " << sum_of_deltas << " ms" << std::endl \
                             << "   Method 3: " << t_method_3 << " s" << std::endl \
                             << "   Method 4: " << t_method_4 << " s" << std::endl \
                             << "        Fixed offset: " << _ros_time_offset << " s" << std::endl \
+                            << "   Current time: " << curr_t << " s" << std::endl \
                             << "   Chosen method: " << _timestamping_method << std::endl \
                             << std::endl;
 
