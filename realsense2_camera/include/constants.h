@@ -70,6 +70,7 @@ namespace realsense2_camera
 
     const int         DEFAULT_TIMESTAMPING_METHOD      = 1;
     const double      DEFAULT_ROS_TIME_OFFSET          = 0.0;
+    const double      DEFAULT_TRANSMISSION_DELAY       = 0.0;
     const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
     const std::string DEFAULT_DEPTH_FRAME_ID           = "camera_depth_frame";
     const std::string DEFAULT_INFRA1_FRAME_ID          = "camera_infra1_frame";

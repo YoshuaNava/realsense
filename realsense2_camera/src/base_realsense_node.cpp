@@ -153,6 +153,7 @@ void BaseRealSenseNode::getParameters()
 
     _pnh.param("timestamping_method", _timestamping_method, DEFAULT_TIMESTAMPING_METHOD);
     _pnh.param("ros_time_offset", _ros_time_offset, DEFAULT_ROS_TIME_OFFSET);
+    _pnh.param("transmission_delay", _transmission_delay_, DEFAULT_TRANSMISSION_DELAY);
 
     _pnh.param("json_file_path", _json_file_path, std::string(""));
 
@@ -624,7 +625,7 @@ void BaseRealSenseNode::setupStreams()
                 }
                 else {
                     double curr_t = ros::Time::now().toSec();
-                    ros::Time t_method_1, t_method_2, t_method_3, t_method_4;
+                    ros::Time t_method_1, t_method_2, t_method_3, t_method_4, t_method_5;
                     rs2_metadata_type frame_number=0, sensor_timestamp=0, frame_timestamp=0, backend_timestamp=0,
                                         arrival_timestamp=0;
                     if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER))
@@ -654,6 +655,9 @@ void BaseRealSenseNode::setupStreams()
                     // Method #4 - Fixed offset - ANYmal 2 solution
                     t_method_4 = ros::Time::now() + ros::Duration(_ros_time_offset);
 
+                    // Method #5 - Removal of varying processing+driver offsets + removal of fixed transmission offset
+                    t_method_5 = ros::Time::now() + ros::Duration(_transmission_delay_);
+
                     switch(_timestamping_method) {
                         case 1:
                             t = t_method_1;
@@ -666,6 +670,9 @@ void BaseRealSenseNode::setupStreams()
                             break;
                         case 4:
                             t = t_method_4;
+                            break;
+                        case 5:
+                            t = t_method_5;
                             break;
                         default:
                             ROS_WARN("RealSenseDriver: Unrecognized sync method code %i", _timestamping_method);
@@ -685,6 +692,8 @@ void BaseRealSenseNode::setupStreams()
                             << "   Method 3: " << t_method_3 << " s" << std::endl \
                             << "   Method 4: " << t_method_4 << " s" << std::endl \
                             << "        Fixed offset: " << _ros_time_offset << " s" << std::endl \
+                            << "   Method 5: " << t_method_5 << " s" << std::endl \
+                            << "        Fixed transmission offset: " << _transmission_delay_<< " s" << std::endl \
                             << "   Current time: " << curr_t << " s" << std::endl \
                             << "   Chosen method: " << _timestamping_method << std::endl \
                             << std::endl;

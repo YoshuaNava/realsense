@@ -45,6 +45,7 @@
   <arg name="pointcloud_texture_stream" default="RS2_STREAM_ANY"/>  <!-- use RS2_STREAM_ANY to avoid using texture -->
   <arg name="pointcloud_texture_index"  default="0"/>
 
+  <arg name="transmission_delay"  default="0.0"/>
   <arg name="ros_time_offset"     default="0.0"/>
   <arg name="timestamping_method" default="1"/>
   <arg name="enable_sync"         default="true"/>
@@ -82,6 +83,7 @@
     <param name="pointcloud_texture_stream" type="str" value="$(arg pointcloud_texture_stream)"/>
     <param name="pointcloud_texture_index"  type="int" value="$(arg pointcloud_texture_index)"/>
 
+    <param name="transmission_delay"       type="double" value="$(arg transmission_delay)"/>
     <param name="ros_time_offset"          type="double" value="$(arg ros_time_offset)"/>
     <param name="timestamping_method"      type="int"  value="$(arg timestamping_method)"/>
     <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
