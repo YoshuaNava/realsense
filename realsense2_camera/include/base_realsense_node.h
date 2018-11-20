@@ -66,10 +66,10 @@ namespace realsense2_camera
 
 	class PipelineSyncer : public rs2::asynchronous_syncer
 	{
-	public:
+	public: 
 		void operator()(rs2::frame f) const
 		{
-			this->invoke(std::move(f));
+			invoke(std::move(f));
 		}
 	};
 
