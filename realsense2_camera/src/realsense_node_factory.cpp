@@ -69,7 +69,13 @@ void RealSenseNodeFactory::onInit()
 			for (auto&& dev : list)
 			{
 				auto sn = dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
-				ROS_DEBUG_STREAM("Device with serial number " << sn << " was found.");
+				ROS_INFO_STREAM("Device with serial number " << sn << " was found.");
+					/* Begin - Fix*/
+					dev.hardware_reset();
+					ROS_INFO_STREAM("Resetting device " << sn << " ...");
+					boost::this_thread::sleep(boost::posix_time::seconds(2));
+					ROS_INFO_STREAM("Device " << sn << " ready.");
+					/* End - Fix */
 				if (serial_no.empty())
 				{
 					_device = dev;
