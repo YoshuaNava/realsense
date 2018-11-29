@@ -71,6 +71,9 @@
 
   <arg name="ros_time_offset"     default="0.0"/>
 
+  <arg name="reset_device_startup"      default="false"/>
+  <arg name="reset_sleep_time"          default="0.0"/>
+
   <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)">
     <param name="serial_no"                type="str"  value="$(arg serial_no)"/>
@@ -83,6 +86,9 @@
     <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
     <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
     <param name="ros_time_offset"          type="double" value="$(arg ros_time_offset)"/>
+
+    <param name="reset_device_startup"     type="bool" value="$(arg reset_device_startup)"/>
+    <param name="reset_sleep_time"         type="double" value="$(arg reset_sleep_time)"/>
 
     <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
     <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>

@@ -41,6 +41,9 @@ void RealSenseNodeFactory::onInit()
 		auto privateNh = getPrivateNodeHandle();
 		std::string serial_no("");
 		privateNh.param("serial_no", serial_no, std::string(""));
+
+		privateNh.param("reset_device_startup", _reset_device_startup, DEFAULT_RESET_DEVICE_STARTUP);
+    	privateNh.param("reset_sleep_time", _reset_sleep_time, DEFAULT_RESET_SLEEP_TIME);
 		
 		std::string rosbag_filename("");
         privateNh.param("rosbag_filename", rosbag_filename, std::string(""));
@@ -70,12 +73,14 @@ void RealSenseNodeFactory::onInit()
 			{
 				auto sn = dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
 				ROS_INFO_STREAM("Device with serial number " << sn << " was found.");
-					/* Begin - Fix*/
+				/* Begin - Fix of device ownership issue */
+				if(_reset_device_startup) {
 					dev.hardware_reset();
-					ROS_INFO_STREAM("Resetting device " << sn << " ...");
-					boost::this_thread::sleep(boost::posix_time::seconds(2));
+					ROS_INFO_STREAM("Resetting device " << sn << ". Wait " << _reset_sleep_time << " seconds...");
+					boost::this_thread::sleep(boost::posix_time::seconds(_reset_sleep_time));
 					ROS_INFO_STREAM("Device " << sn << " ready.");
-					/* End - Fix */
+				}
+				/* End - Fix of device ownership issue */
 				if (serial_no.empty())
 				{
 					_device = dev;

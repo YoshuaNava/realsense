@@ -37,6 +37,8 @@ namespace realsense2_camera
     const bool SYNC_FRAMES    = false;
 
     const double DEFAULT_ROS_TIME_OFFSET = 0.0;
+    const bool DEFAULT_RESET_DEVICE_STARTUP = true;
+    const double DEFAULT_RESET_SLEEP_TIME = 2.0;
 
     const int DEPTH_WIDTH     = 640;
     const int DEPTH_HEIGHT    = 480;

@@ -41,6 +41,9 @@
   <arg name="align_depth"         default="false"/>
   <arg name="ros_time_offset"     default="0.0"/>
 
+  <arg name="reset_device_startup"      default="true"/>
+  <arg name="reset_sleep_time"          default="3.0"/>
+
   <arg name="filters"             default=""/>
 
   <group ns="$(arg camera)">
@@ -55,6 +58,9 @@
       <arg name="enable_sync"              value="$(arg enable_sync)"/>
       <arg name="align_depth"              value="$(arg align_depth)"/>
       <arg name="ros_time_offset"          value="$(arg ros_time_offset)"/>
+
+      <arg name="reset_device_startup"      value="$(arg reset_device_startup)"/>
+      <arg name="reset_sleep_time"          value="$(arg reset_sleep_time)"/>
 
       <arg name="fisheye_width"            value="$(arg fisheye_width)"/>
       <arg name="fisheye_height"           value="$(arg fisheye_height)"/>
