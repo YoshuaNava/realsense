@@ -72,6 +72,7 @@ generate_dynamic_reconfigure_options(
 
 # RealSense ROS Node
 catkin_package(
+    INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIR}
     LIBRARIES ${PROJECT_NAME}
     CATKIN_DEPENDS message_runtime roscpp sensor_msgs std_msgs librealsense2
     nodelet
