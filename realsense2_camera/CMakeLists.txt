@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
     dynamic_reconfigure
     diagnostic_updater
     )
+    
+find_package(Eigen3 REQUIRED)
 
 if(BUILD_WITH_OPENMP)
     find_package(OpenMP)
@@ -57,6 +59,7 @@ generate_messages(
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
     )
 
 # Generate dynamic reconfigure options from .cfg files
