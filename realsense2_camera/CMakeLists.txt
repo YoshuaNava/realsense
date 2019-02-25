@@ -17,6 +17,8 @@ find_package(catkin REQUIRED COMPONENTS
     dynamic_reconfigure
     diagnostic_updater
     )
+    
+find_package(Eigen3 REQUIRED)
 
 if(BUILD_WITH_OPENMP)
     find_package(OpenMP)
@@ -57,6 +59,7 @@ generate_messages(
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
     )
 
 # Generate dynamic reconfigure options from .cfg files
@@ -69,6 +72,7 @@ generate_dynamic_reconfigure_options(
 
 # RealSense ROS Node
 catkin_package(
+    INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIR}
     LIBRARIES ${PROJECT_NAME}
     CATKIN_DEPENDS message_runtime roscpp sensor_msgs std_msgs librealsense2
     nodelet
