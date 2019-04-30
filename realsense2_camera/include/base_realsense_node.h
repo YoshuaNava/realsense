@@ -266,6 +266,7 @@ namespace realsense2_camera
         bool _pointcloud;
         bool _publish_odom_tf;
         imu_sync_method _imu_sync_method;
+        double _ros_time_offset = 0.0;
         std::string _filters_str;
         stream_index_pair _pointcloud_texture;
         PipelineSyncer _syncer;

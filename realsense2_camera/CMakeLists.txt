@@ -11,6 +11,7 @@ find_package(catkin REQUIRED COMPONENTS
     roscpp
     sensor_msgs
     std_msgs
+    librealsense2
     nodelet
     cv_bridge
     image_transport
@@ -18,6 +19,8 @@ find_package(catkin REQUIRED COMPONENTS
     ddynamic_reconfigure
     diagnostic_updater
     )
+    
+find_package(Eigen3 REQUIRED)
 
 if(BUILD_WITH_OPENMP)
     find_package(OpenMP)
@@ -32,11 +35,6 @@ endif()
 if(SET_USER_BREAK_AT_STARTUP)
 	message("GOT FLAG IN CmakeLists.txt")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBPDEBUG")
-endif()
-
-find_package(realsense2 2.19.0)
-if(NOT realsense2_FOUND)
-    message(FATAL_ERROR "\n\n Intel RealSense SDK 2.0 is missing, please install it from https://github.com/IntelRealSense/librealsense/releases\n\n")
 endif()
 
 if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
@@ -63,13 +61,14 @@ generate_messages(
 include_directories(
     include
     ${catkin_INCLUDE_DIRS}
-    ${realsense_INCLUDE_DIR}
+    ${EIGEN3_INCLUDE_DIR}
     )
 
 # RealSense ROS Node
 catkin_package(
+    INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIR}
     LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS message_runtime roscpp sensor_msgs std_msgs
+    CATKIN_DEPENDS message_runtime roscpp sensor_msgs std_msgs librealsense2
     nodelet
     cv_bridge
     image_transport
@@ -95,7 +94,6 @@ target_include_directories(${PROJECT_NAME}
   PRIVATE ${realsense_INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME}
-    ${realsense2_LIBRARY}
     ${catkin_LIBRARIES}
     ${CMAKE_THREAD_LIBS_INIT}
     )
