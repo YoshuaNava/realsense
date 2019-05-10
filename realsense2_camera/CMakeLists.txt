@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(realsense2_camera)
+add_compile_options(-std=c++11)
 
 option(BUILD_WITH_OPENMP "Use OpenMP" OFF)
 option(SET_USER_BREAK_AT_STARTUP "Set user wait point in startup (for debug)" OFF)
 
 find_package(catkin REQUIRED COMPONENTS
     message_generation
+    nav_msgs
     roscpp
     sensor_msgs
     std_msgs
@@ -14,7 +16,7 @@ find_package(catkin REQUIRED COMPONENTS
     cv_bridge
     image_transport
     tf
-    dynamic_reconfigure
+    ddynamic_reconfigure
     diagnostic_updater
     )
     
@@ -62,14 +64,6 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
     )
 
-# Generate dynamic reconfigure options from .cfg files
-generate_dynamic_reconfigure_options(
-  cfg/base_d400_params.cfg
-  cfg/sr300_params.cfg
-  cfg/rs415_params.cfg
-  cfg/rs435_params.cfg
-)
-
 # RealSense ROS Node
 catkin_package(
     INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIR}
@@ -78,26 +72,22 @@ catkin_package(
     nodelet
     cv_bridge
     image_transport
-    dynamic_reconfigure
+    ddynamic_reconfigure
+    nav_msgs
     )
 
 add_library(${PROJECT_NAME}
     include/constants.h
     include/realsense_node_factory.h
     include/base_realsense_node.h
-    include/rs415_node.h
-    include/rs435_node.h
-    include/sr300_node.h
+    include/t265_realsense_node.h
     src/realsense_node_factory.cpp
     src/base_realsense_node.cpp
-    src/rs415_node.cpp
-    src/rs435_node.cpp
-    src/sr300_node.cpp
+    src/t265_realsense_node.cpp
     )
 
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
-add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_gencfg)
 
 
 target_include_directories(${PROJECT_NAME}
@@ -133,4 +123,14 @@ install(DIRECTORY rviz/
 # Install xml files
 install(FILES nodelet_plugins.xml
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+    )
+
+# Install urdf files
+install(DIRECTORY urdf/
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf
+    )
+
+# Install mesh files
+install(DIRECTORY meshes/
+    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/meshes
     )
