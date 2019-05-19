@@ -60,9 +60,8 @@ generate_messages(
 
 include_directories(
     include
-    SYSTEM
-        ${catkin_INCLUDE_DIRS}
-        ${EIGEN3_INCLUDE_DIR}
+    ${catkin_INCLUDE_DIRS}
+    ${EIGEN3_INCLUDE_DIR}
     )
 
 # RealSense ROS Node
@@ -92,8 +91,7 @@ add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 
 target_include_directories(${PROJECT_NAME}
-  PRIVATE ${realsense_INCLUDE_DIR}
-)
+  PRIVATE ${realsense_INCLUDE_DIR})
 
 target_link_libraries(${PROJECT_NAME}
     ${catkin_LIBRARIES}
