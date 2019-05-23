@@ -621,9 +621,11 @@ void BaseRealSenseNode::setupStreams()
                 ros::Time t;
                 if (_sync_frames)
                 {
+                    /*
                     t = ros::Time::now();
                 }
                 else {
+                    */
                     double curr_t = ros::Time::now().toSec();
                     ros::Time t_method_1, t_method_2, t_method_3, t_method_4, t_method_5;
                     rs2_metadata_type frame_number=0, sensor_timestamp=0, frame_timestamp=0, backend_timestamp=0,
@@ -645,6 +647,7 @@ void BaseRealSenseNode::setupStreams()
 
                     // Method #2 - "Approximation from the right"
                     double delta_time_device = frame_timestamp - sensor_timestamp;
+                    delta_time_device = 4250;
                     double delta_time_pc_host = arrival_timestamp - backend_timestamp;
                     double sum_of_deltas = (delta_time_device + delta_time_pc_host) / 1000.0f;        // ms
                     t_method_2 = ros::Time( curr_t - (sum_of_deltas/1000.0f) );

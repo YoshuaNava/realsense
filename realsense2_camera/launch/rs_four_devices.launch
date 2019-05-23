@@ -56,7 +56,7 @@
 
   <arg name="ros_time_offset"     default="-0.16"/>
   <arg name="timestamping_method" default="2"/>
-  <arg name="enable_sync"         default="false"/>
+  <arg name="enable_sync"         default="true"/>
   <arg name="align_depth"         default="false"/>
 
 

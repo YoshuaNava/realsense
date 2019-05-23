@@ -149,7 +149,7 @@ namespace realsense2_camera
         int _timestamping_method;
         double _ros_time_offset = 0.0;
         double _transmission_delay_ = 0.0;
-        bool _print_stamping_info_ = true;
+        bool _print_stamping_info_ = false;
 
         std::map<stream_index_pair, rs2_intrinsics> _stream_intrinsics;
         std::map<stream_index_pair, int> _width;
