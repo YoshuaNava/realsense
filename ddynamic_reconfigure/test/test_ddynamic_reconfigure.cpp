@@ -6,6 +6,7 @@
 #include <dynamic_reconfigure/Reconfigure.h>
 #include <ddynamic_reconfigure/param/dd_all_params.h>
 #include <exception>
+#include <sstream>
 using namespace std;
 namespace ddynamic_reconfigure {
 
@@ -394,7 +395,9 @@ namespace ddynamic_reconfigure {
         for (int i = 1; i < top; i++) {
             next = (unsigned int) random();
             or_sum |= next;
-            dd.add(new DDInt((format("param_%d") % i).str(), next,"level_param", 0));
+            std::stringstream sstr;
+            sstr << "param_" << i;
+            dd.add(new DDInt(sstr.str(), next,"level_param", 0));
         }
         dd.start(callback);
 
@@ -404,7 +407,9 @@ namespace ddynamic_reconfigure {
         dynamic_reconfigure::Reconfigure srv;
         dynamic_reconfigure::IntParameter int_param;
         for (int i = 1; i < top; i++) {
-            int_param.name = (format("param_%d") % i).str();
+            std::stringstream sstr;
+            sstr << "param_" << i;
+            int_param.name = sstr.str();
             int_param.value = 1;
             srv.request.config.ints.push_back(int_param);
         }
