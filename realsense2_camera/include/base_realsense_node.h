@@ -129,6 +129,19 @@ namespace realsense2_camera
                 }
         };
 
+        // Timestamping methods
+        //   Baseline: the default method, that ships with the realsense2 package.
+        //   Fixed offset: assumes cameras have a fixed delay between acquisition and 
+        //                 driver availability, which is used to correct the frame stamps.
+        //   Varying offsets: uses frame metadata to estimate frame acquisition (fD) and 
+        //                    driver transition delays (dD). Assumes fixed transmission 
+        //                    delay (tD) and removes all of them from frame stamps.
+        enum class timestamping_method {
+            baseline,
+            fixed_offset,
+            varying_offsets,
+        };
+
         std::string _base_frame_id;
         std::string _odom_frame_id;
         std::map<stream_index_pair, std::string> _frame_id;
@@ -265,8 +278,12 @@ namespace realsense2_camera
         bool _sync_frames;
         bool _pointcloud;
         bool _publish_odom_tf;
+
         imu_sync_method _imu_sync_method;
+        
+        timestamping_method _timestamping_method;
         double _ros_time_offset = 0.0;
+
         std::string _filters_str;
         stream_index_pair _pointcloud_texture;
         PipelineSyncer _syncer;

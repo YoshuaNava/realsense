@@ -412,6 +412,33 @@ void BaseRealSenseNode::getParameters()
     _pnh.param("enable_sync", _sync_frames, SYNC_FRAMES);
     if (_pointcloud || _align_depth || _filters_str.size() > 0)
         _sync_frames = true;
+
+    std::string timestamping_method_param;
+    _pnh.param("timestamping_method", timestamping_method_param, DEFAULT_TIMESTAMPING_METHOD);
+    // Transform user input to lowercase letters.
+    std::transform(timestamping_method_param.begin(), timestamping_method_param.end(),
+                   timestamping_method_param.begin(), ::tolower);
+    if(timestamping_method_param == "baseline")
+    { 
+        ROS_INFO("Timestamping method: Intel's baseline (no delay compensation).");
+        _timestamping_method = timestamping_method::baseline;
+    }
+    else if(timestamping_method_param == "fixed_offset")
+    {
+        ROS_INFO("Timestamping method: Fixed offset.");
+        _timestamping_method = timestamping_method::fixed_offset;
+    }
+    else if(timestamping_method_param == "varying_offsets")
+    {
+        ROS_INFO("Timestamping method: Varying offsets.");
+        _timestamping_method = timestamping_method::varying_offsets;
+    }
+    else
+    {
+        _timestamping_method = timestamping_method::baseline;
+        ROS_WARN_STREAM("Invalid timestamping method (" << timestamping_method_param << ")!. Baseline timestamping will be used (no delay compensation).");
+    }
+
     _pnh.param("ros_time_offset", _ros_time_offset, DEFAULT_ROS_TIME_OFFSET);
 
     _pnh.param("json_file_path", _json_file_path, std::string(""));
@@ -1367,20 +1394,60 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
         // We compute a ROS timestamp which is based on an initial ROS time at point of first frame,
         // and the incremental timestamp from the camera.
         // In sync mode the timestamp is based on ROS time
+        //* ANYbotics: an additional factor was introduced to correct timestamps. This factor
+        //*            can be provided by the user as a fixed quantity (ros_time_offset), or 
+        //*            computed using metadata from the device.
         bool placeholder_false(false);
         if (_is_initialized_time_base.compare_exchange_strong(placeholder_false, true) )
         {
             setBaseTime(frame_time, RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME == frame.get_frame_timestamp_domain());
         }
 
+        //* Timestamp correction.
+        ros::Duration timestamp_offset(0);
+        if(_timestamping_method == timestamping_method::fixed_offset) {
+            timestamp_offset = ros::Duration(_ros_time_offset);
+        } else if (_timestamping_method == timestamping_method::varying_offsets) {
+            // Metadata containers.
+            rs2_metadata_type sensor_capture_timestamp=0,
+                              frame_processing_timestamp=0,
+                              kernel_arrival_timestamp=0,
+                              driver_arrival_timestamp=0;
+
+            // Fetch metadata from device.
+            // Middle/half of the exposure time. (Device clock)
+            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP))
+                sensor_capture_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP);   // usec
+
+            // Timestamp after onboard processing finishes. (Device clock)
+            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP))
+                frame_processing_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP);  // usec
+
+            // Timestamp after frames are transmitted to PC, and kernel receives them. (PC clock)
+            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP))
+                kernel_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP);  // msec
+            
+            // Timestamp after frames become available. (PC clock)
+            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL))
+                driver_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL);    // msec
+
+            // Computation of time-varying offsets.
+            const double frame_acquisition_offset = -1.0 * (frame_processing_timestamp - sensor_capture_timestamp) * 1e-6;
+            const double driver_handover_offset = -1.0 * (driver_arrival_timestamp - kernel_arrival_timestamp) * 1e-3;
+
+            // Time offset = (frame acquisition offset) + (*fixed* transmission offset) + (driver handover offset)
+            timestamp_offset = ros::Duration(frame_acquisition_offset + _ros_time_offset + driver_handover_offset);
+        }
+        ROS_DEBUG("Timestamp correction = %.17g", timestamp_offset.toSec());
+
         ros::Time t;
         if (_sync_frames)
         {
-            t = ros::Time::now() + ros::Duration(_ros_time_offset);
+            t = ros::Time::now() + timestamp_offset;
         }
         else
         {
-            t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame_time - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
+            t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame_time - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000) + timestamp_offset;
         }
 
         if (frame.is<rs2::frameset>())

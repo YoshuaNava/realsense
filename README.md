@@ -3,7 +3,8 @@
 **The following changes have been done:**
 
 * Caktinized librealsense2
-* Implemented workaround for the depth auto-expsosure not being initialized correctly
+* Implemented workaround for the depth auto-exposure not being initialized correctly.
+* Implemented timestamp correction methods that try to remove any delays between frame acquisition and driver availability.
 
 Build with
 

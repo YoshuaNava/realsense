@@ -42,7 +42,6 @@ namespace realsense2_camera
     const int IMAGE_WIDTH     = 640;
     const int IMAGE_HEIGHT    = 480;
     const int IMAGE_FPS       = 30;
-    const double DEFAULT_ROS_TIME_OFFSET = 0.0;
 
     const int IMU_FPS         = 0;
 
@@ -56,6 +55,8 @@ namespace realsense2_camera
     const bool HOLD_BACK_IMU_FOR_FRAMES = false;
     const bool PUBLISH_ODOM_TF = true;
 
+    const double      DEFAULT_ROS_TIME_OFFSET          = 0.0;
+    const std::string DEFAULT_TIMESTAMPING_METHOD      = "baseline";
 
     const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
     const std::string DEFAULT_ODOM_FRAME_ID            = "odom_frame";
