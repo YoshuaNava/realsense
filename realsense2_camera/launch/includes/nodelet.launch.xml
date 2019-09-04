@@ -81,8 +81,9 @@
   <arg name="unite_imu_method"         default="none"/> <!-- Options are: [none, copy, linear_interpolation] -->
 
   <!-- Options: baseline, fixed_offset, varying_offsets -->
-  <arg name="timestamping_method"       default="baseline"/>
-  <arg name="ros_time_offset"           default="0.0"/>
+  <arg name="timestamping_method"      default="baseline"/>
+  <arg name="fixed_time_offset"        default="0.0"/>
+  <arg name="disable_color_startup"    default="false"/>
 
   <node pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen"/>
   <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)">
@@ -97,7 +98,8 @@
     <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
 
     <param name="timestamping_method"      type="str"    value="$(arg timestamping_method)"/>
-    <param name="ros_time_offset"          type="double" value="$(arg ros_time_offset)"/>
+    <param name="fixed_time_offset"        type="double" value="$(arg fixed_time_offset)"/>
+    <param name="disable_color_startup"    type="bool"  value="$(arg disable_color_startup)"/>
 
     <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
     <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>

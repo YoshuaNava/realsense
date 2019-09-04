@@ -15,12 +15,90 @@
 #include <sensor_msgs/Imu.h>
 #include <nav_msgs/Odometry.h>
 
+#include <std_srvs/SetBool.h>
+#include <realsense2_camera/FrameMetadataMsg.h>
+#include <realsense2_camera/TimeOffsetsMsg.h>
+#include <realsense2_camera/TimestampingInfoMsg.h>
+
 #include <queue>
 #include <mutex>
 #include <atomic>
 
 namespace realsense2_camera
 {
+    //* Frame metadata container.
+    struct FrameMetadata
+    {
+        //* Timestamps.
+        rs2_metadata_type sensor_capture_timestamp = 0;
+        rs2_metadata_type frame_processing_timestamp = 0;
+        rs2_metadata_type kernel_arrival_timestamp = 0;
+        rs2_metadata_type driver_arrival_timestamp = 0;
+
+        //* Frame generation.
+        rs2_metadata_type gain_level = 0;
+        rs2_metadata_type auto_exposure = 0;
+        rs2_metadata_type exposure_time = 0;
+
+        //* Frame counter.
+        rs2_metadata_type frame_counter = 0;
+        rs2_metadata_type actual_fps = 0;
+
+        //* Laser projector status.
+        rs2_metadata_type laser_enabled = 0;
+        rs2_metadata_type laser_power = 0;
+
+        //* Physical state of the device.
+        rs2_metadata_type temperature = 0;
+
+        FrameMetadataMsg toRosMsg() const {
+            FrameMetadataMsg msg;
+            
+            //* Timestamps.
+            msg.sensor_capture_timestamp = sensor_capture_timestamp;
+            msg.frame_processing_timestamp = frame_processing_timestamp;
+            msg.kernel_arrival_timestamp = kernel_arrival_timestamp;
+            msg.driver_arrival_timestamp = driver_arrival_timestamp;
+            //* Frame generation.
+            msg.gain_level = gain_level;
+            msg.auto_exposure = auto_exposure;
+            msg.exposure_time = exposure_time;
+            //* Frame counter.
+            msg.frame_counter = frame_counter;
+            msg.actual_fps = actual_fps;
+            //* Laser projector.
+            msg.laser_enabled = laser_enabled;
+            msg.laser_power = laser_power;
+            //* Physical state.
+            msg.temperature = temperature;
+
+            return msg;
+        }
+    };
+
+    //* Time offsets container.
+    struct TimeOffsets {
+        //* Offset introduced by the delay between frame capture, processing and start of transmission.
+        double frame_acquisition_offset = 0;
+
+        //* Offset introduced during USB transmission.
+        double wire_transmission_offset = 0;
+
+        //* Offset due to kernel-user space transition.
+        double driver_handover_offset = 0;
+
+        TimeOffsetsMsg toRosMsg() const {
+            TimeOffsetsMsg msg;
+            
+            //* Timestamps.
+            msg.frame_acquisition_offset = frame_acquisition_offset;
+            msg.wire_transmission_offset = wire_transmission_offset;
+            msg.driver_handover_offset = driver_handover_offset;
+
+            return msg;
+        }
+    };
+
     struct FrequencyDiagnostics
     {
       FrequencyDiagnostics(double expected_frequency, std::string name, std::string hardware_id) :
@@ -237,6 +315,14 @@ namespace realsense2_camera
         void registerDynamicOption(ros::NodeHandle& nh, rs2::options sensor, std::string& module_name);
         rs2_stream rs2_string_to_stream(std::string str);
 
+        //* Custom methods
+        void setupServices();
+        bool toggleColor(bool enabled);
+        bool toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response);
+        void fetchFrameMetadata(const rs2::frame& frame, FrameMetadata& metadata_container);
+        void publishTimestampingInformation(const ros::Time& t, const rs2::frame& frame, const FrameMetadata& metadata, const TimeOffsets& time_offsets);
+        //* Custom methods
+
         rs2::device _dev;
         std::map<stream_index_pair, rs2::sensor> _sensors;
         std::map<std::string, std::function<void(rs2::frame)>> _sensors_callback;
@@ -281,8 +367,13 @@ namespace realsense2_camera
 
         imu_sync_method _imu_sync_method;
         
+        //* Custom attributes
+        ros::Publisher _timestamping_info_publisher;
         timestamping_method _timestamping_method;
-        double _ros_time_offset = 0.0;
+        double _fixed_time_offset = 0.0;
+        ros::ServiceServer _toggleColorService;
+        bool _disable_color_startup;
+        //* Custom attributes
 
         std::string _filters_str;
         stream_index_pair _pointcloud_texture;

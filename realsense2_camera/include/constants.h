@@ -55,8 +55,11 @@ namespace realsense2_camera
     const bool HOLD_BACK_IMU_FOR_FRAMES = false;
     const bool PUBLISH_ODOM_TF = true;
 
-    const double      DEFAULT_ROS_TIME_OFFSET          = 0.0;
+    //* Custom constants.
+    const double      DEFAULT_FIXED_TIME_OFFSET          = 0.0;
     const std::string DEFAULT_TIMESTAMPING_METHOD      = "baseline";
+    const bool        DEFAULT_DISABLE_COLOR_STARTUP    = false;
+    //* Custom constants.
 
     const std::string DEFAULT_BASE_FRAME_ID            = "camera_link";
     const std::string DEFAULT_ODOM_FRAME_ID            = "odom_frame";

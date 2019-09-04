@@ -18,6 +18,7 @@ find_package(catkin REQUIRED COMPONENTS
     tf
     ddynamic_reconfigure
     diagnostic_updater
+    std_srvs
     )
     
 find_package(Eigen3 REQUIRED)
@@ -50,6 +51,9 @@ add_message_files(
     FILES
     IMUInfo.msg
     Extrinsics.msg
+    FrameMetadataMsg.msg
+    TimeOffsetsMsg.msg
+    TimestampingInfoMsg.msg
     )
 
 generate_messages(
@@ -75,6 +79,7 @@ catkin_package(
     image_transport
     ddynamic_reconfigure
     nav_msgs
+    std_srvs
     )
 
 add_library(${PROJECT_NAME}

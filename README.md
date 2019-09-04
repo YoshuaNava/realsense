@@ -5,6 +5,9 @@
 * Caktinized librealsense2
 * Implemented workaround for the depth auto-exposure not being initialized correctly.
 * Implemented timestamp correction methods that try to remove any delays between frame acquisition and driver availability.
+* Implemented a publisher that enables real-time monitoring of timestamp correction.
+* Implemented a method to toggle color on/off. Having color off improves timestamp correction accuracy.
+* Added a ROS parameter to toggle color off after the node has started operation with color ON.
 
 Build with
 

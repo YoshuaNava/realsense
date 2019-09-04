@@ -171,6 +171,7 @@ void BaseRealSenseNode::publishTopics()
     setupDevice();
     setupErrorCallback();
     setupPublishers();
+    setupServices();
     setupStreams();
     setupFilters();
     publishStaticTransforms();
@@ -413,6 +414,7 @@ void BaseRealSenseNode::getParameters()
     if (_pointcloud || _align_depth || _filters_str.size() > 0)
         _sync_frames = true;
 
+    //* Timestamp estimation.
     std::string timestamping_method_param;
     _pnh.param("timestamping_method", timestamping_method_param, DEFAULT_TIMESTAMPING_METHOD);
     // Transform user input to lowercase letters.
@@ -439,7 +441,10 @@ void BaseRealSenseNode::getParameters()
         ROS_WARN_STREAM("Invalid timestamping method (" << timestamping_method_param << ")!. Baseline timestamping will be used (no delay compensation).");
     }
 
-    _pnh.param("ros_time_offset", _ros_time_offset, DEFAULT_ROS_TIME_OFFSET);
+    _pnh.param("fixed_time_offset", _fixed_time_offset, DEFAULT_FIXED_TIME_OFFSET);
+
+    //* Toggling color on/off after startup.
+    _pnh.param("disable_color_startup", _disable_color_startup, DEFAULT_DISABLE_COLOR_STARTUP);
 
     _pnh.param("json_file_path", _json_file_path, std::string(""));
 
@@ -700,6 +705,8 @@ void BaseRealSenseNode::setupPublishers()
             }
         }
     }
+
+    _timestamping_info_publisher = _node_handle.advertise<TimestampingInfoMsg>("camera_timestamping_info", 1);
 
     _synced_imu_publisher = std::make_shared<SyncedImuPublisher>();
     if (_imu_sync_method > imu_sync_method::NONE && _enable[GYRO] && _enable[ACCEL])
@@ -1384,6 +1391,159 @@ void BaseRealSenseNode::pose_callback(rs2::frame frame)
     }
 }
 
+void BaseRealSenseNode::setupServices()
+{
+    _toggleColorService = _node_handle.advertiseService("toggleColor", &BaseRealSenseNode::toggleColorCb, this);
+}
+
+bool BaseRealSenseNode::toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response)
+{
+    response.success = static_cast<uint8_t>(toggleColor(static_cast<bool>(request.data)));
+    return true;
+}
+
+bool BaseRealSenseNode::toggleColor(bool enable)
+{
+    // Get sensor handler.
+    auto& sens = _sensors[COLOR];
+
+    // If the sensor is already in the desired mode, return.
+    if(_enable[COLOR] == enable) {
+        return true;
+    }
+
+    // Try to set the sensor mode.
+    try
+    {
+        _enable[COLOR] = enable;
+        if (enable)
+            sens.start(_syncer);
+        else
+            sens.stop();
+    }
+    catch(const rs2::wrong_api_call_sequence_error& ex)
+    {
+        ROS_DEBUG_STREAM("toggleSensors: " << ex.what());
+        return false;
+    }
+
+    return true;
+}
+
+
+void BaseRealSenseNode::fetchFrameMetadata(const rs2::frame& frame, FrameMetadata& metadata_container) {
+    /** Timestamp metadata **/
+    //* Middle/half of the exposure time. (Device clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP))
+        metadata_container.sensor_capture_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP);   // usec
+
+    //* Timestamp after onboard processing finishes. (Device clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP))
+        metadata_container.frame_processing_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP);  // usec
+
+    //* Timestamp after frames are transmitted to PC, and kernel receives them. (PC clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP))
+        metadata_container.kernel_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP);  // msec
+    
+    //* Timestamp after frames become available. (PC clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL))
+        metadata_container.driver_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL);    // msec
+
+    /** Frame generation **/
+    //* Gain level.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_GAIN_LEVEL))
+        metadata_container.gain_level = frame.get_frame_metadata(RS2_FRAME_METADATA_GAIN_LEVEL);
+
+    //* Whether auto exposure was enabled.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_AUTO_EXPOSURE))
+        metadata_container.auto_exposure = frame.get_frame_metadata(RS2_FRAME_METADATA_AUTO_EXPOSURE);
+
+    //* Exposure time.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE))
+        metadata_container.exposure_time = frame.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE);                // usec
+
+    /** Frame counter **/
+    //* Frame counter value.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER))
+        metadata_container.frame_counter = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER);
+
+    //* Actual frames-per-second (FPS) value.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_FPS))
+        metadata_container.actual_fps = frame.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_FPS);
+
+    /** Laser projector status **/
+    //* Whether the laser projector was enabled.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE))
+        metadata_container.laser_enabled = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE);
+
+    //* Power level of the laser projector.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER))
+        metadata_container.laser_power = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER);
+
+    /** Physical state of the device **/
+    //* Temperature.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_TEMPERATURE))
+        metadata_container.temperature = frame.get_frame_metadata(RS2_FRAME_METADATA_TEMPERATURE);
+}
+
+void BaseRealSenseNode::publishTimestampingInformation(const ros::Time& t, const rs2::frame& frame, const FrameMetadata& metadata, const TimeOffsets& time_offsets) {
+    if(0 != _timestamping_info_publisher.getNumSubscribers())
+    {
+        TimestampingInfoMsg msg;
+
+        // Msg header.
+        msg.header.stamp = t;
+        msg.header.frame_id  = _base_frame_id;
+
+        // Device characteristics.
+        msg.device_model = _dev.get_info(RS2_CAMERA_INFO_NAME);
+        msg.device_name = _namespace;
+        if (frame.is<rs2::frameset>())
+        {
+            auto frameset = frame.as<rs2::frameset>();
+            for (auto it = frameset.begin(); it != frameset.end(); ++it)
+            {
+                auto f = (*it);
+                auto stream_type = f.get_profile().stream_type();
+                auto stream_index = f.get_profile().stream_index();
+                msg.active_streams.push_back(rs2_stream_to_string(stream_type) + std::to_string(stream_index));
+            }
+        }
+
+        // Frame metadata.
+        msg.frame_metadata = metadata.toRosMsg();
+
+        // Time offsets.
+        msg.time_offsets = time_offsets.toRosMsg();
+
+        // Timestamp estimation.
+        if(_timestamping_method == timestamping_method::varying_offsets)
+        {
+            msg.timestamping_method = std::string("varying_offsets");
+        } 
+        else if (_timestamping_method == timestamping_method::fixed_offset) 
+        {
+            msg.timestamping_method = std::string("fixed_offset");
+        }
+        else
+        {
+            if(_sync_frames)
+            {
+                msg.timestamping_method = std::string("baseline-enable_sync");
+            }
+            else
+            {
+                msg.timestamping_method = std::string("baseline");
+            }
+
+        }
+        msg.fixed_offset_value = _fixed_time_offset;
+
+        _timestamping_info_publisher.publish(msg);
+        ROS_DEBUG("timestamping info of stream published");
+    }
+}
+
 void BaseRealSenseNode::frame_callback(rs2::frame frame)
 {
     _synced_imu_publisher->Pause();
@@ -1395,7 +1555,7 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
         // and the incremental timestamp from the camera.
         // In sync mode the timestamp is based on ROS time
         //* ANYbotics: an additional factor was introduced to correct timestamps. This factor
-        //*            can be provided by the user as a fixed quantity (ros_time_offset), or 
+        //*            can be provided by the user as a fixed quantity (fixed_time_offset), or 
         //*            computed using metadata from the device.
         bool placeholder_false(false);
         if (_is_initialized_time_base.compare_exchange_strong(placeholder_false, true) )
@@ -1403,52 +1563,54 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
             setBaseTime(frame_time, RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME == frame.get_frame_timestamp_domain());
         }
 
-        //* Timestamp correction.
-        ros::Duration timestamp_offset(0);
-        if(_timestamping_method == timestamping_method::fixed_offset) {
-            timestamp_offset = ros::Duration(_ros_time_offset);
-        } else if (_timestamping_method == timestamping_method::varying_offsets) {
-            // Metadata containers.
-            rs2_metadata_type sensor_capture_timestamp=0,
-                              frame_processing_timestamp=0,
-                              kernel_arrival_timestamp=0,
-                              driver_arrival_timestamp=0;
+        //* Metadata container.
+        FrameMetadata frame_metadata;
 
-            // Fetch metadata from device.
-            // Middle/half of the exposure time. (Device clock)
-            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP))
-                sensor_capture_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP);   // usec
+        //* Fetch metadata from device.
+        fetchFrameMetadata(frame, frame_metadata);
 
-            // Timestamp after onboard processing finishes. (Device clock)
-            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP))
-                frame_processing_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP);  // usec
-
-            // Timestamp after frames are transmitted to PC, and kernel receives them. (PC clock)
-            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP))
-                kernel_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP);  // msec
-            
-            // Timestamp after frames become available. (PC clock)
-            if(frame.supports_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL))
-                driver_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL);    // msec
-
-            // Computation of time-varying offsets.
-            const double frame_acquisition_offset = -1.0 * (frame_processing_timestamp - sensor_capture_timestamp) * 1e-6;
-            const double driver_handover_offset = -1.0 * (driver_arrival_timestamp - kernel_arrival_timestamp) * 1e-3;
-
-            // Time offset = (frame acquisition offset) + (*fixed* transmission offset) + (driver handover offset)
-            timestamp_offset = ros::Duration(frame_acquisition_offset + _ros_time_offset + driver_handover_offset);
-        }
-        ROS_DEBUG("Timestamp correction = %.17g", timestamp_offset.toSec());
+        TimeOffsets timeOffsets;
 
         ros::Time t;
-        if (_sync_frames)
+        // Timestamp computation.
+        if(_timestamping_method == timestamping_method::baseline)
         {
+            if (_sync_frames)
+            {
+                t = ros::Time::now();
+            }
+            else
+            {
+                t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame_time - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
+            }    
+        }
+        else 
+        {
+            //* Timestamp correction.
+            ros::Duration timestamp_offset(0);
+            if(_timestamping_method == timestamping_method::fixed_offset)
+            {
+                timeOffsets.wire_transmission_offset = _fixed_time_offset;                                                                              // sec
+                timestamp_offset = ros::Duration(-1.0 * timeOffsets.wire_transmission_offset);
+            } else if (_timestamping_method == timestamping_method::varying_offsets)
+            {
+                //* Computation of time-varying offsets.
+                timeOffsets.frame_acquisition_offset =  (frame_metadata.frame_processing_timestamp - frame_metadata.sensor_capture_timestamp) * 1e-6;   // sec
+                timeOffsets.wire_transmission_offset = _fixed_time_offset;                                                                              // sec
+                timeOffsets.driver_handover_offset = (frame_metadata.driver_arrival_timestamp - frame_metadata.kernel_arrival_timestamp) * 1e-3;        // sec
+
+                //* Time offset = (frame acquisition offset) + (*fixed* transmission offset) + (driver handover offset)
+                timestamp_offset = ros::Duration(-1.0 * (timeOffsets.frame_acquisition_offset + timeOffsets.wire_transmission_offset + timeOffsets.driver_handover_offset));
+            }
+
+            //* Timestamp computation.
             t = ros::Time::now() + timestamp_offset;
+
+            ROS_DEBUG("Timestamp correction = %.17g", timestamp_offset.toSec());
         }
-        else
-        {
-            t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame_time - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000) + timestamp_offset;
-        }
+
+        //* Publish timestamping information.
+        publishTimestampingInformation(t, frame, frame_metadata, timeOffsets);
 
         if (frame.is<rs2::frameset>())
         {
@@ -1682,6 +1844,10 @@ void BaseRealSenseNode::setupStreams()
     {
         ROS_ERROR_STREAM("Unknown exception has occured!");
         throw;
+    }
+
+    if(_disable_color_startup) {
+        toggleColor(false);
     }
 }
 
