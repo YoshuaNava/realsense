@@ -176,6 +176,11 @@ void BaseRealSenseNode::publishTopics()
     setupFilters();
     publishStaticTransforms();
     ROS_INFO_STREAM("RealSense Node Is Up!");
+
+    if(_disable_color_startup) {
+        toggleColor(false);
+    }
+
 }
 
 bool is_checkbox(rs2::options sensor, rs2_option option)
@@ -1416,10 +1421,15 @@ bool BaseRealSenseNode::toggleColor(bool enable)
     try
     {
         _enable[COLOR] = enable;
-        if (enable)
+        if (enable) {
+            ROS_INFO_STREAM("Enabled RGB stream");            
             sens.start(_syncer);
+        } 
         else
+        {
+            ROS_INFO_STREAM("Disabled RGB stream");
             sens.stop();
+        }
     }
     catch(const rs2::wrong_api_call_sequence_error& ex)
     {
@@ -1846,9 +1856,6 @@ void BaseRealSenseNode::setupStreams()
         throw;
     }
 
-    if(_disable_color_startup) {
-        toggleColor(false);
-    }
 }
 
 void BaseRealSenseNode::updateStreamCalibData(const rs2::video_stream_profile& video_profile)
