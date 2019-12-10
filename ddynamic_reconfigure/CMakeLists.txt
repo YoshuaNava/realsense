@@ -72,6 +72,6 @@ if (CATKIN_ENABLE_TESTING)
     target_link_libraries(dd_server ${PROJECT_NAME} ${catkin_LIBRARIES})
     add_dependencies(dd_server ${PROJECT_NAME}_gencpp)
 
-    add_rostest_gtest(dd_full_scale-test test/dd_full_scale/dd_full_scale.test test/dd_full_scale/dd_client.cpp)
-    target_link_libraries(dd_full_scale-test ${PROJECT_NAME})
+    # add_rostest_gtest(dd_full_scale-test test/dd_full_scale/dd_full_scale.test test/dd_full_scale/dd_client.cpp)
+    # target_link_libraries(dd_full_scale-test ${PROJECT_NAME})
 endif(CATKIN_ENABLE_TESTING)

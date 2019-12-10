@@ -4,7 +4,8 @@
     <version>1.0.6</version>
     <description>The ddynamic_reconfigure package</description>
 
-    <maintainer email="theNODO55@gmail.com">Noam Dori</maintainer>
+    <maintainer email="ynava@anybotics.com">Yoshua Nava</maintainer>
+  <maintainer email="mwulf@anybotics.com">Maximilian Wulf</maintainer>
 
     <license>BSD</license>
 
