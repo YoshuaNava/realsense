@@ -5,20 +5,21 @@ add_compile_options(-std=c++11)
 option(BUILD_WITH_OPENMP "Use OpenMP" OFF)
 option(SET_USER_BREAK_AT_STARTUP "Set user wait point in startup (for debug)" OFF)
 
-find_package(catkin REQUIRED COMPONENTS
-    message_generation
-    nav_msgs
-    roscpp
-    sensor_msgs
-    std_msgs
-    librealsense2
-    nodelet
-    cv_bridge
-    image_transport
-    tf
-    ddynamic_reconfigure
-    diagnostic_updater
-    std_srvs
+find_package(catkin REQUIRED
+    COMPONENTS
+        message_generation
+        nav_msgs
+        roscpp
+        sensor_msgs
+        std_msgs
+        librealsense2
+        nodelet
+        cv_bridge
+        image_transport
+        tf
+        ddynamic_reconfigure
+        diagnostic_updater
+        std_srvs
     )
     
 find_package(Eigen3 REQUIRED)
@@ -38,6 +39,11 @@ if(SET_USER_BREAK_AT_STARTUP)
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DBPDEBUG")
 endif()
 
+# find_package(realsense2 2.29.0)
+# if(NOT realsense2_FOUND)
+#     message(FATAL_ERROR "\n\n Intel RealSense SDK 2.0 is missing, please install it from https://github.com/IntelRealSense/librealsense/releases\n\n")
+# endif()
+
 if (CMAKE_BUILD_TYPE EQUAL "RELEASE")
     message(STATUS "Create Release Build.")
     set(CMAKE_CXX_FLAGS "-O2 ${CMAKE_CXX_FLAGS}")
@@ -49,19 +55,20 @@ set(CMAKE_CXX_FLAGS "-fPIE -fPIC -std=c++11 -D_FORTIFY_SOURCE=2 -fstack-protecto
 
 add_message_files(
     FILES
-    IMUInfo.msg
-    Extrinsics.msg
-    FrameMetadataMsg.msg
-    TimeOffsetsMsg.msg
-    TimestampingInfoMsg.msg
+        IMUInfo.msg
+        Extrinsics.msg
+        FrameMetadataMsg.msg
+        TimeOffsetsMsg.msg
+        TimestampingInfoMsg.msg
     )
 
 generate_messages(
     DEPENDENCIES
-    sensor_msgs
-    std_msgs
+        sensor_msgs
+        std_msgs
     )
 
+set(CMAKE_NO_SYSTEM_FROM_IMPORTED true)
 include_directories(
     include
     SYSTEM
@@ -71,15 +78,23 @@ include_directories(
 
 # RealSense ROS Node
 catkin_package(
-    INCLUDE_DIRS include ${EIGEN3_INCLUDE_DIR}
-    LIBRARIES ${PROJECT_NAME}
-    CATKIN_DEPENDS message_runtime roscpp sensor_msgs std_msgs librealsense2
-    nodelet
-    cv_bridge
-    image_transport
-    ddynamic_reconfigure
-    nav_msgs
-    std_srvs
+    INCLUDE_DIRS 
+        include
+        ${EIGEN3_INCLUDE_DIR}
+    LIBRARIES
+        ${PROJECT_NAME}
+    CATKIN_DEPENDS
+        message_runtime
+        roscpp
+        sensor_msgs
+        std_msgs
+        librealsense2
+        nodelet
+        cv_bridge
+        image_transport
+        ddynamic_reconfigure
+        nav_msgs
+        std_srvs
     )
 
 add_library(${PROJECT_NAME}
@@ -94,7 +109,6 @@ add_library(${PROJECT_NAME}
 
 add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
-
 
 target_include_directories(${PROJECT_NAME}
   PRIVATE ${realsense_INCLUDE_DIR}
@@ -132,12 +146,3 @@ install(FILES nodelet_plugins.xml
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
     )
 
-# Install urdf files
-install(DIRECTORY urdf/
-    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/urdf
-    )
-
-# Install mesh files
-install(DIRECTORY meshes/
-    DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}/meshes
-    )
