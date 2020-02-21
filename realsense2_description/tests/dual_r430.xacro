@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<robot name="realsense2_camera" xmlns:xacro="http://ros.org/wiki/xacro">
+<robot name="any_realsense2_camera" xmlns:xacro="http://ros.org/wiki/xacro">
   <xacro:include filename="../urdf/_r430.urdf.xacro" />
   
   <xacro:arg name="use_nominal_extrinsics" default="True" />

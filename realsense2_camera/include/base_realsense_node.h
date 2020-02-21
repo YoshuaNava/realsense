@@ -18,14 +18,16 @@
 #include <condition_variable>
 
 #include <std_srvs/SetBool.h>
-#include <realsense2_camera/FrameMetadataMsg.h>
-#include <realsense2_camera/TimeOffsetsMsg.h>
-#include <realsense2_camera/TimestampingInfoMsg.h>
+#include <any_realsense2_camera/FrameMetadataMsg.h>
+#include <any_realsense2_camera/TimeOffsetsMsg.h>
+#include <any_realsense2_camera/TimestampingInfoMsg.h>
 
 #include <queue>
 #include <mutex>
 #include <atomic>
 #include <thread>
+
+using namespace any_realsense2_camera;
 
 namespace realsense2_camera
 {

@@ -14,12 +14,15 @@
 #include <librealsense2/rs_advanced_mode.hpp>
 #include <cv_bridge/cv_bridge.h>
 #include <constants.h>
-#include <realsense2_camera/Extrinsics.h>
-#include <realsense2_camera/IMUInfo.h>
 #include <csignal>
 #include <eigen3/Eigen/Geometry>
 #include <fstream>
 #include <thread>
+
+#include <any_realsense2_camera/Extrinsics.h>
+#include <any_realsense2_camera/IMUInfo.h>
+
+using namespace any_realsense2_camera;
 
 namespace realsense2_camera
 {
