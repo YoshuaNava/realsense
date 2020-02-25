@@ -1,4 +1,5 @@
 #include "../include/base_realsense_node.h"
+
 #include "assert.h"
 #include <boost/algorithm/string.hpp>
 #include <algorithm>

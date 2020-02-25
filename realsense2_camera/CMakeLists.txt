@@ -97,8 +97,6 @@ catkin_package(
         std_srvs
     )
 
-set(PROJECT_NAME realsense2_camera)
-
 add_library(${PROJECT_NAME}
     include/constants.h
     include/realsense_node_factory.h
@@ -109,7 +107,7 @@ add_library(${PROJECT_NAME}
     src/t265_realsense_node.cpp
     )
 
-add_dependencies(${PROJECT_NAME} any_realsense2_camera_generate_messages_cpp)
+add_dependencies(${PROJECT_NAME} ${PROJECT_NAME}_generate_messages_cpp)
 add_dependencies(${PROJECT_NAME} ${catkin_EXPORTED_TARGETS})
 
 target_include_directories(${PROJECT_NAME}

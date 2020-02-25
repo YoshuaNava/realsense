@@ -4,8 +4,8 @@
 #pragma once
 
 #include "../include/realsense_node_factory.h"
-#include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 
+#include <ddynamic_reconfigure/ddynamic_reconfigure.h>
 #include <diagnostic_updater/diagnostic_updater.h>
 #include <diagnostic_updater/update_functions.h>
 #include <sensor_msgs/CameraInfo.h>
@@ -15,13 +15,13 @@
 #include <nav_msgs/Odometry.h>
 #include <tf/transform_broadcaster.h>
 #include <tf2_ros/static_transform_broadcaster.h>
-#include <condition_variable>
 
 #include <std_srvs/SetBool.h>
 #include <any_realsense2_camera/FrameMetadataMsg.h>
 #include <any_realsense2_camera/TimeOffsetsMsg.h>
 #include <any_realsense2_camera/TimestampingInfoMsg.h>
 
+#include <condition_variable>
 #include <queue>
 #include <mutex>
 #include <atomic>
