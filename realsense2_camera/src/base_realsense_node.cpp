@@ -200,7 +200,7 @@ void BaseRealSenseNode::publishTopics()
     publishStaticTransforms();
     publishIntrinsics();
     startMonitoring();
-    ROS_INFO_STREAM("RealSense Node Is Up!");
+    ROS_DEBUG("RealSense Node Is Up!");
 
     if(_disable_color_startup) {
         toggleColor(false);
@@ -496,7 +496,7 @@ void BaseRealSenseNode::registerDynamicOption(ros::NodeHandle& nh, rs2::options 
 
 void BaseRealSenseNode::registerDynamicReconfigCb(ros::NodeHandle& nh)
 {
-    ROS_INFO("Setting Dynamic reconfig parameters.");
+    ROS_DEBUG("Setting Dynamic reconfig parameters.");
 
     for(rs2::sensor sensor : _dev_sensors)
     {
@@ -512,7 +512,7 @@ void BaseRealSenseNode::registerDynamicReconfigCb(ros::NodeHandle& nh)
         ROS_DEBUG_STREAM("module_name:" << module_name);
         registerDynamicOption(nh, sensor, module_name);
     }
-    ROS_INFO("Done Setting Dynamic reconfig parameters.");
+    ROS_DEBUG("Done Setting Dynamic reconfig parameters.");
 }
 
 rs2_stream BaseRealSenseNode::rs2_string_to_stream(std::string str)
@@ -530,7 +530,7 @@ rs2_stream BaseRealSenseNode::rs2_string_to_stream(std::string str)
 
 void BaseRealSenseNode::getParameters()
 {
-    ROS_INFO("getParameters...");
+    ROS_DEBUG("getParameters...");
 
     _pnh.param("align_depth", _align_depth, ALIGN_DEPTH);
     _pnh.param("enable_pointcloud", _pointcloud, POINTCLOUD);
@@ -656,7 +656,7 @@ void BaseRealSenseNode::getParameters()
 
 void BaseRealSenseNode::setupDevice()
 {
-    ROS_INFO("setupDevice...");
+    ROS_DEBUG("setupDevice...");
     try{
         if (!_json_file_path.empty())
         {
@@ -680,28 +680,36 @@ void BaseRealSenseNode::setupDevice()
                 ROS_WARN("Device does not support advanced settings!");
         }
         else
-            ROS_INFO("JSON file is not provided");
+            ROS_DEBUG("JSON file is not provided");
 
-        ROS_INFO_STREAM("ROS Node Namespace: " << _namespace);
+        ROS_DEBUG_STREAM("ROS Node Namespace: " << _namespace);
 
         auto camera_name = _dev.get_info(RS2_CAMERA_INFO_NAME);
-        ROS_INFO_STREAM("Device Name: " << camera_name);
+        ROS_DEBUG_STREAM("Device Name: " << camera_name);
 
-        ROS_INFO_STREAM("Device Serial No: " << _serial_no);
+        ROS_DEBUG_STREAM("Device Serial No: " << _serial_no);
 
         auto camera_id = _dev.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT);
 
-        ROS_INFO_STREAM("Device physical port: " << camera_id);
+        ROS_DEBUG_STREAM("Device physical port: " << camera_id);
 
         auto fw_ver = _dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION);
-        ROS_INFO_STREAM("Device FW version: " << fw_ver);
+        ROS_DEBUG_STREAM("Device FW version: " << fw_ver);
 
         auto pid = _dev.get_info(RS2_CAMERA_INFO_PRODUCT_ID);
-        ROS_INFO_STREAM("Device Product ID: 0x" << pid);
+        ROS_DEBUG_STREAM("Device Product ID: 0x" << pid);
 
-        ROS_INFO_STREAM("Enable PointCloud: " << ((_pointcloud)?"On":"Off"));
-        ROS_INFO_STREAM("Align Depth: " << ((_align_depth)?"On":"Off"));
-        ROS_INFO_STREAM("Sync Mode: " << ((_sync_frames)?"On":"Off"));
+        ROS_DEBUG_STREAM("Enable PointCloud: " << ((_pointcloud)?"On":"Off"));
+        ROS_DEBUG_STREAM("Align Depth: " << ((_align_depth)?"On":"Off"));
+        ROS_DEBUG_STREAM("Sync Mode: " << ((_sync_frames)?"On":"Off"));
+
+        ROS_INFO_STREAM("Device Serial: '" <<  _serial_no << "';"
+            << " Firmware: '" <<  fw_ver << "';"
+            << " Camera model name: '" <<  camera_name << "';"
+            << " Device Physical Port ID: " << camera_id << ".");
+        ROS_INFO_STREAM("Point Cloud generation: '" <<  ((_pointcloud)?"On":"Off") << "';"
+            << " Depth Alignment: '" <<  ((_align_depth)?"On":"Off") << "';"
+            << " Frame synching: '" <<  ((_sync_frames)?"On":"Off") << "'.");
 
         _dev_sensors = _dev.query_sensors();
 
@@ -731,7 +739,7 @@ void BaseRealSenseNode::setupDevice()
         }
         std::function<void(rs2::frame)> multiple_message_callback_function = [this](rs2::frame frame){multiple_message_callback(frame, _imu_sync_method);};
 
-        ROS_INFO_STREAM("Device Sensors: ");
+        ROS_DEBUG_STREAM("Device Sensors: ");
         for(auto&& elem : _dev_sensors)
         {
             std::string module_name = elem.get_info(RS2_CAMERA_INFO_NAME);
@@ -780,7 +788,7 @@ void BaseRealSenseNode::setupDevice()
                 ros::shutdown();
                 exit(1);
             }
-            ROS_INFO_STREAM(std::string(elem.get_info(RS2_CAMERA_INFO_NAME)) << " was found.");
+            ROS_DEBUG_STREAM(std::string(elem.get_info(RS2_CAMERA_INFO_NAME)) << " was found.");
         }
 
         // Update "enable" map
@@ -789,7 +797,7 @@ void BaseRealSenseNode::setupDevice()
             const stream_index_pair& stream_index(enable.first);
             if (enable.second && _sensors.find(stream_index) == _sensors.end())
             {
-                ROS_INFO_STREAM("(" << rs2_stream_to_string(stream_index.first) << ", " << stream_index.second << ") sensor isn't supported by current device! -- Skipping...");
+                ROS_DEBUG_STREAM("(" << rs2_stream_to_string(stream_index.first) << ", " << stream_index.second << ") sensor isn't supported by current device! -- Skipping...");
                 _enable[enable.first] = false;
             }
         }
@@ -808,7 +816,7 @@ void BaseRealSenseNode::setupDevice()
 
 void BaseRealSenseNode::setupPublishers()
 {
-    ROS_INFO("setupPublishers...");
+    ROS_DEBUG("setupPublishers...");
     image_transport::ImageTransport image_transport(_node_handle);
 
     for (auto& stream : IMAGE_STREAMS)
@@ -852,7 +860,7 @@ void BaseRealSenseNode::setupPublishers()
     _synced_imu_publisher = std::make_shared<SyncedImuPublisher>();
     if (_imu_sync_method > imu_sync_method::NONE && _enable[GYRO] && _enable[ACCEL])
     {
-        ROS_INFO("Start publisher IMU");
+        ROS_DEBUG("Start publisher IMU");
         _synced_imu_publisher = std::make_shared<SyncedImuPublisher>(_node_handle.advertise<sensor_msgs::Imu>("imu", 5));
         _synced_imu_publisher->Enable(_hold_back_imu_for_frames);
     }
@@ -1038,6 +1046,8 @@ void BaseRealSenseNode::enable_devices()
             }
         }
     }
+
+    ROS_INFO_STREAM("RealSense '" << _serial_no << "' setup finished. Streaming will start.");
 }
 
 void BaseRealSenseNode::setupFilters()
@@ -1059,17 +1069,17 @@ void BaseRealSenseNode::setupFilters()
         }
         else if ((*s_iter) == "spatial")
         {
-            ROS_INFO("Add Filter: spatial");
+            ROS_DEBUG("Add Filter: spatial");
             _filters.push_back(NamedFilter("spatial", std::make_shared<rs2::spatial_filter>()));
         }
         else if ((*s_iter) == "temporal")
         {
-            ROS_INFO("Add Filter: temporal");
+            ROS_DEBUG("Add Filter: temporal");
             _filters.push_back(NamedFilter("temporal", std::make_shared<rs2::temporal_filter>()));
         }
         else if ((*s_iter) == "hole_filling")
         {
-            ROS_INFO("Add Filter: hole_filling");
+            ROS_DEBUG("Add Filter: hole_filling");
             _filters.push_back(NamedFilter("hole_filling", std::make_shared<rs2::hole_filling_filter>()));
         }
         else if ((*s_iter) == "decimation")
@@ -1088,19 +1098,18 @@ void BaseRealSenseNode::setupFilters()
     }
     if (use_disparity_filter)
     {
-        ROS_INFO("Add Filter: disparity");
+        ROS_DEBUG("Add Filter: disparity");
         _filters.insert(_filters.begin(), NamedFilter("disparity_start", std::make_shared<rs2::disparity_transform>()));
         _filters.push_back(NamedFilter("disparity_end", std::make_shared<rs2::disparity_transform>(false)));
-        ROS_INFO("Done Add Filter: disparity");
     }
     if (use_decimation_filter)
     {
-      ROS_INFO("Add Filter: decimation");
-      _filters.insert(_filters.begin(),NamedFilter("decimation", std::make_shared<rs2::decimation_filter>()));
+        ROS_DEBUG("Add Filter: decimation");
+        _filters.insert(_filters.begin(),NamedFilter("decimation", std::make_shared<rs2::decimation_filter>()));
     }
     if (use_colorizer_filter)
     {
-        ROS_INFO("Add Filter: colorizer");
+        ROS_DEBUG("Add Filter: colorizer");
         _filters.push_back(NamedFilter("colorizer", std::make_shared<rs2::colorizer>()));
 
         // Types for depth stream
@@ -1114,10 +1123,10 @@ void BaseRealSenseNode::setupFilters()
     }
     if (_pointcloud)
     {
-    	ROS_INFO("Add Filter: pointcloud");
+    	ROS_DEBUG("Add Filter: pointcloud");
         _filters.push_back(NamedFilter("pointcloud", std::make_shared<rs2::pointcloud>(_pointcloud_texture.first, _pointcloud_texture.second)));
     }
-    ROS_INFO("num_filters: %d", static_cast<int>(_filters.size()));
+    ROS_DEBUG("num_filters: %d", static_cast<int>(_filters.size()));
 }
 
 
@@ -1876,7 +1885,7 @@ void BaseRealSenseNode::setBaseTime(double frame_time, bool warn_no_metadata)
 
 void BaseRealSenseNode::setupStreams()
 {
-	ROS_INFO("setupStreams...");
+	ROS_DEBUG("setupStreams...");
     try{
 		// Publish image stream info
         for (auto& profiles : _enabled_profiles)
@@ -1897,7 +1906,7 @@ void BaseRealSenseNode::setupStreams()
         for (const std::pair<stream_index_pair, std::vector<rs2::stream_profile>>& profile : _enabled_profiles)
         {
             std::string module_name = _sensors[profile.first].get_info(RS2_CAMERA_INFO_NAME);
-            ROS_INFO_STREAM("insert " << rs2_stream_to_string(profile.second.begin()->stream_type())
+            ROS_DEBUG_STREAM("insert " << rs2_stream_to_string(profile.second.begin()->stream_type())
               << " to " << module_name);
             profiles[module_name].insert(profiles[module_name].begin(),
                                             profile.second.begin(),
@@ -2085,7 +2094,7 @@ void BaseRealSenseNode::SetBaseStream()
     {
         throw std::runtime_error("No known base_stream found for transformations.");
     }
-    ROS_INFO_STREAM("SELECTED BASE:" << base_stream->first << ", " << base_stream->second);
+    ROS_DEBUG_STREAM("SELECTED BASE:" << base_stream->first << ", " << base_stream->second);
 
     _base_stream = *base_stream;
 }

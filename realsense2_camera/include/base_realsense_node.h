@@ -111,7 +111,7 @@ namespace realsense2_camera
         frequency_status_(diagnostic_updater::FrequencyStatusParam(&expected_frequency_, &expected_frequency_)),
         diagnostic_updater_(ros::NodeHandle(), ros::NodeHandle("~"), ros::this_node::getName() + "_" + name)
       {
-        ROS_INFO("Expected frequency for %s = %.5f", name.c_str(), expected_frequency_);
+        ROS_DEBUG("Expected frequency for %s = %.5f", name.c_str(), expected_frequency_);
         diagnostic_updater_.setHardwareID(hardware_id);
         diagnostic_updater_.add(frequency_status_);
       }

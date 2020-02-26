@@ -23,8 +23,7 @@ PLUGINLIB_EXPORT_CLASS(realsense2_camera::RealSenseNodeFactory, nodelet::Nodelet
 
 RealSenseNodeFactory::RealSenseNodeFactory()
 {
-	ROS_INFO("RealSense ROS v%s", REALSENSE_ROS_VERSION_STR);
-	ROS_INFO("Running with LibRealSense v%s", RS2_API_VERSION_STR);
+	ROS_INFO_STREAM("Running with LibRealSense v" << RS2_API_VERSION_STR << " and RealSense ROS v" << REALSENSE_ROS_VERSION_STR);
 
 	auto severity = rs2_log_severity::RS2_LOG_SEVERITY_WARN;
 	tryGetLogSeverity(severity);
@@ -59,17 +58,17 @@ void RealSenseNodeFactory::getDevice(rs2::device_list list)
 		else
 		{
 			bool found = false;
-      		ROS_INFO_STREAM(" ");
+      		// ROS_INFO_STREAM(" ");
 			for (auto&& dev : list)
 			{
 				auto sn = dev.get_info(RS2_CAMERA_INFO_SERIAL_NUMBER);
-				ROS_INFO_STREAM("Device with serial number " << sn << " was found."<<std::endl);
+				ROS_DEBUG_STREAM("Device with serial number " << sn << " was found."<<std::endl);
 				std::string pn = dev.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT);
 				std::string name = dev.get_info(RS2_CAMERA_INFO_NAME);
-				ROS_INFO_STREAM("Device with physical ID " << pn << " was found.");
+				ROS_DEBUG_STREAM("Device with physical ID " << pn << " was found.");
 				std::string port_id;
 				std::vector<std::string> results;
-				ROS_INFO_STREAM("Device with name " << name << " was found.");
+				ROS_DEBUG_STREAM("Device with name " << name << " was found.");
 				std::regex self_regex;
 				if(name == std::string("Intel RealSense T265"))
 				{
@@ -90,7 +89,7 @@ void RealSenseNodeFactory::getDevice(rs2::device_list list)
 						std::ssub_match base_sub_match = base_match[mi];
 						port_id += "-" + base_sub_match.str();
 					}
-					ROS_INFO_STREAM("Device with port number " << port_id << " was found.");
+					ROS_DEBUG_STREAM("Device with port number " << port_id << " was found.");
 				}
 				else
 				{
@@ -190,7 +189,7 @@ void RealSenseNodeFactory::change_device_callback(rs2::event_information& info)
 		rs2::device_list new_devices = info.get_new_devices();
 		if (new_devices.size() > 0)
 		{
-			ROS_INFO("Checking new devices...");
+			ROS_INFO("Searching for new devices...");
 			getDevice(new_devices);
 			if (_device)
 			{
