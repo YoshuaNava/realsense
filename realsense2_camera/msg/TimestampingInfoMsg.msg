@@ -2,7 +2,7 @@ std_msgs/Header   header
 
 # Device information.
 string            device_model                            # Device model, e.g. D435, D415 camera.
-string            device_name                             # Device name, e.g. 'realsense_d435_front'
+string            device_name                             # Device name, e.g. 'depth_camera_front'
 string[]          active_streams                          # Active stream IDs, e.g. 'color', 'infra1', 'infra2', 'rgb', etc.
 
 # Frame data.
