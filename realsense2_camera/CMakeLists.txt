@@ -146,3 +146,9 @@ install(FILES nodelet_plugins.xml
     DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
     )
 
+catkin_install_python(
+  PROGRAMS
+    test/ros_test.py
+  DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
+)
+
