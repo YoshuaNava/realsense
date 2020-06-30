@@ -1,10 +1,12 @@
 #include "../include/base_realsense_node.h"
+
 #include "assert.h"
 #include <boost/algorithm/string.hpp>
 #include <algorithm>
 #include <cctype>
 #include <mutex>
 
+using namespace any_realsense2_camera;
 using namespace realsense2_camera;
 using namespace ddynamic_reconfigure;
 
@@ -202,13 +204,19 @@ void BaseRealSenseNode::publishTopics()
     setupErrorCallback();
     enable_devices();
     setupPublishers();
+    setupServices();
     setupStreams();
     SetBaseStream();
     registerAutoExposureROIOptions(_node_handle);
     publishStaticTransforms();
     publishIntrinsics();
     startMonitoring();
-    ROS_INFO_STREAM("RealSense Node Is Up!");
+    ROS_DEBUG("RealSense Node Is Up!");
+
+    if(_disable_color_startup) {
+        toggleColor(false);
+    }
+
 }
 
 void BaseRealSenseNode::runFirstFrameInitialization(rs2_stream stream_type)
@@ -505,7 +513,7 @@ void BaseRealSenseNode::registerDynamicOption(ros::NodeHandle& nh, rs2::options 
 
 void BaseRealSenseNode::registerDynamicReconfigCb(ros::NodeHandle& nh)
 {
-    ROS_INFO("Setting Dynamic reconfig parameters.");
+    ROS_DEBUG("Setting Dynamic reconfig parameters.");
 
     for(rs2::sensor sensor : _dev_sensors)
     {
@@ -521,7 +529,7 @@ void BaseRealSenseNode::registerDynamicReconfigCb(ros::NodeHandle& nh)
         ROS_DEBUG_STREAM("module_name:" << module_name);
         registerDynamicOption(nh, sensor, module_name);
     }
-    ROS_INFO("Done Setting Dynamic reconfig parameters.");
+    ROS_DEBUG("Done Setting Dynamic reconfig parameters.");
 }
 
 rs2_stream BaseRealSenseNode::rs2_string_to_stream(std::string str)
@@ -539,7 +547,7 @@ rs2_stream BaseRealSenseNode::rs2_string_to_stream(std::string str)
 
 void BaseRealSenseNode::getParameters()
 {
-    ROS_INFO("getParameters...");
+    ROS_DEBUG("getParameters...");
 
     _pnh.param("align_depth", _align_depth, ALIGN_DEPTH);
     _pnh.param("enable_pointcloud", _pointcloud, POINTCLOUD);
@@ -558,6 +566,38 @@ void BaseRealSenseNode::getParameters()
     _pnh.param("enable_sync", _sync_frames, SYNC_FRAMES);
     if (_pointcloud || _align_depth || _filters_str.size() > 0)
         _sync_frames = true;
+
+    //* Timestamp estimation.
+    std::string timestamping_method_param;
+    _pnh.param("timestamping_method", timestamping_method_param, DEFAULT_TIMESTAMPING_METHOD);
+    // Transform user input to lowercase letters.
+    std::transform(timestamping_method_param.begin(), timestamping_method_param.end(),
+                   timestamping_method_param.begin(), ::tolower);
+    if(timestamping_method_param == "baseline")
+    { 
+        ROS_INFO("Timestamping method: Intel's baseline (no delay compensation).");
+        _timestamping_method = timestamping_method::baseline;
+    }
+    else if(timestamping_method_param == "fixed_offset")
+    {
+        ROS_INFO("Timestamping method: Fixed offset.");
+        _timestamping_method = timestamping_method::fixed_offset;
+    }
+    else if(timestamping_method_param == "varying_offsets")
+    {
+        ROS_INFO("Timestamping method: Varying offsets.");
+        _timestamping_method = timestamping_method::varying_offsets;
+    }
+    else
+    {
+        _timestamping_method = timestamping_method::baseline;
+        ROS_WARN_STREAM("Invalid timestamping method (" << timestamping_method_param << ")!. Baseline timestamping will be used (no delay compensation).");
+    }
+
+    _pnh.param("fixed_time_offset", _fixed_time_offset, DEFAULT_FIXED_TIME_OFFSET);
+
+    //* Toggling color on/off after startup.
+    _pnh.param("disable_color_startup", _disable_color_startup, DEFAULT_DISABLE_COLOR_STARTUP);
 
     _pnh.param("json_file_path", _json_file_path, std::string(""));
 
@@ -633,7 +673,7 @@ void BaseRealSenseNode::getParameters()
 
 void BaseRealSenseNode::setupDevice()
 {
-    ROS_INFO("setupDevice...");
+    ROS_DEBUG("setupDevice...");
     try{
         if (!_json_file_path.empty())
         {
@@ -657,28 +697,36 @@ void BaseRealSenseNode::setupDevice()
                 ROS_WARN("Device does not support advanced settings!");
         }
         else
-            ROS_INFO("JSON file is not provided");
+            ROS_DEBUG("JSON file is not provided");
 
-        ROS_INFO_STREAM("ROS Node Namespace: " << _namespace);
+        ROS_DEBUG_STREAM("ROS Node Namespace: " << _namespace);
 
         auto camera_name = _dev.get_info(RS2_CAMERA_INFO_NAME);
-        ROS_INFO_STREAM("Device Name: " << camera_name);
+        ROS_DEBUG_STREAM("Device Name: " << camera_name);
 
-        ROS_INFO_STREAM("Device Serial No: " << _serial_no);
+        ROS_DEBUG_STREAM("Device Serial No: " << _serial_no);
 
         auto camera_id = _dev.get_info(RS2_CAMERA_INFO_PHYSICAL_PORT);
 
-        ROS_INFO_STREAM("Device physical port: " << camera_id);
+        ROS_DEBUG_STREAM("Device physical port: " << camera_id);
 
         auto fw_ver = _dev.get_info(RS2_CAMERA_INFO_FIRMWARE_VERSION);
-        ROS_INFO_STREAM("Device FW version: " << fw_ver);
+        ROS_DEBUG_STREAM("Device FW version: " << fw_ver);
 
         auto pid = _dev.get_info(RS2_CAMERA_INFO_PRODUCT_ID);
-        ROS_INFO_STREAM("Device Product ID: 0x" << pid);
+        ROS_DEBUG_STREAM("Device Product ID: 0x" << pid);
 
-        ROS_INFO_STREAM("Enable PointCloud: " << ((_pointcloud)?"On":"Off"));
-        ROS_INFO_STREAM("Align Depth: " << ((_align_depth)?"On":"Off"));
-        ROS_INFO_STREAM("Sync Mode: " << ((_sync_frames)?"On":"Off"));
+        ROS_DEBUG_STREAM("Enable PointCloud: " << ((_pointcloud)?"On":"Off"));
+        ROS_DEBUG_STREAM("Align Depth: " << ((_align_depth)?"On":"Off"));
+        ROS_DEBUG_STREAM("Sync Mode: " << ((_sync_frames)?"On":"Off"));
+
+        ROS_INFO_STREAM("Device Serial: '" <<  _serial_no << "';"
+            << " Firmware: '" <<  fw_ver << "';"
+            << " Camera model name: '" <<  camera_name << "';"
+            << " Device Physical Port ID: " << camera_id << ".");
+        ROS_INFO_STREAM("Point Cloud generation: '" <<  ((_pointcloud)?"On":"Off") << "';"
+            << " Depth Alignment: '" <<  ((_align_depth)?"On":"Off") << "';"
+            << " Frame synching: '" <<  ((_sync_frames)?"On":"Off") << "'.");
 
         _dev_sensors = _dev.query_sensors();
 
@@ -708,7 +756,7 @@ void BaseRealSenseNode::setupDevice()
         }
         std::function<void(rs2::frame)> multiple_message_callback_function = [this](rs2::frame frame){multiple_message_callback(frame, _imu_sync_method);};
 
-        ROS_INFO_STREAM("Device Sensors: ");
+        ROS_DEBUG_STREAM("Device Sensors: ");
         for(auto&& sensor : _dev_sensors)
         {
             for (auto& profile : sensor.get_stream_profiles())
@@ -747,7 +795,7 @@ void BaseRealSenseNode::setupDevice()
                 ros::shutdown();
                 exit(1);
             }
-            ROS_INFO_STREAM(std::string(sensor.get_info(RS2_CAMERA_INFO_NAME)) << " was found.");
+            ROS_DEBUG_STREAM(std::string(elem.get_info(RS2_CAMERA_INFO_NAME)) << " was found.");
         }
 
         // Update "enable" map
@@ -756,7 +804,7 @@ void BaseRealSenseNode::setupDevice()
             const stream_index_pair& stream_index(enable.first);
             if (enable.second && _sensors.find(stream_index) == _sensors.end())
             {
-                ROS_INFO_STREAM("(" << rs2_stream_to_string(stream_index.first) << ", " << stream_index.second << ") sensor isn't supported by current device! -- Skipping...");
+                ROS_DEBUG_STREAM("(" << rs2_stream_to_string(stream_index.first) << ", " << stream_index.second << ") sensor isn't supported by current device! -- Skipping...");
                 _enable[enable.first] = false;
             }
         }
@@ -775,7 +823,7 @@ void BaseRealSenseNode::setupDevice()
 
 void BaseRealSenseNode::setupPublishers()
 {
-    ROS_INFO("setupPublishers...");
+    ROS_DEBUG("setupPublishers...");
     image_transport::ImageTransport image_transport(_node_handle);
 
     for (auto& stream : IMAGE_STREAMS)
@@ -814,10 +862,12 @@ void BaseRealSenseNode::setupPublishers()
         }
     }
 
+    _timestamping_info_publisher = _node_handle.advertise<TimestampingInfoMsg>("camera_timestamping_info", 1);
+
     _synced_imu_publisher = std::make_shared<SyncedImuPublisher>();
     if (_imu_sync_method > imu_sync_method::NONE && _enable[GYRO] && _enable[ACCEL])
     {
-        ROS_INFO("Start publisher IMU");
+        ROS_DEBUG("Start publisher IMU");
         _synced_imu_publisher = std::make_shared<SyncedImuPublisher>(_node_handle.advertise<sensor_msgs::Imu>("imu", 5));
         _synced_imu_publisher->Enable(_hold_back_imu_for_frames);
     }
@@ -1003,6 +1053,8 @@ void BaseRealSenseNode::enable_devices()
             }
         }
     }
+
+    ROS_INFO_STREAM("RealSense '" << _serial_no << "' setup finished. Streaming will start.");
 }
 
 void BaseRealSenseNode::setupFilters()
@@ -1024,17 +1076,17 @@ void BaseRealSenseNode::setupFilters()
         }
         else if ((*s_iter) == "spatial")
         {
-            ROS_INFO("Add Filter: spatial");
+            ROS_DEBUG("Add Filter: spatial");
             _filters.push_back(NamedFilter("spatial", std::make_shared<rs2::spatial_filter>()));
         }
         else if ((*s_iter) == "temporal")
         {
-            ROS_INFO("Add Filter: temporal");
+            ROS_DEBUG("Add Filter: temporal");
             _filters.push_back(NamedFilter("temporal", std::make_shared<rs2::temporal_filter>()));
         }
         else if ((*s_iter) == "hole_filling")
         {
-            ROS_INFO("Add Filter: hole_filling");
+            ROS_DEBUG("Add Filter: hole_filling");
             _filters.push_back(NamedFilter("hole_filling", std::make_shared<rs2::hole_filling_filter>()));
         }
         else if ((*s_iter) == "decimation")
@@ -1053,19 +1105,18 @@ void BaseRealSenseNode::setupFilters()
     }
     if (use_disparity_filter)
     {
-        ROS_INFO("Add Filter: disparity");
+        ROS_DEBUG("Add Filter: disparity");
         _filters.insert(_filters.begin(), NamedFilter("disparity_start", std::make_shared<rs2::disparity_transform>()));
         _filters.push_back(NamedFilter("disparity_end", std::make_shared<rs2::disparity_transform>(false)));
-        ROS_INFO("Done Add Filter: disparity");
     }
     if (use_decimation_filter)
     {
-      ROS_INFO("Add Filter: decimation");
+        ROS_DEBUG("Add Filter: decimation");
       _filters.insert(_filters.begin(),NamedFilter("decimation", std::make_shared<rs2::decimation_filter>()));
     }
     if (use_colorizer_filter)
     {
-        ROS_INFO("Add Filter: colorizer");
+        ROS_DEBUG("Add Filter: colorizer");
         _filters.push_back(NamedFilter("colorizer", std::make_shared<rs2::colorizer>()));
 
         // Types for depth stream
@@ -1079,10 +1130,10 @@ void BaseRealSenseNode::setupFilters()
     }
     if (_pointcloud)
     {
-    	ROS_INFO("Add Filter: pointcloud");
+    	ROS_DEBUG("Add Filter: pointcloud");
         _filters.push_back(NamedFilter("pointcloud", std::make_shared<rs2::pointcloud>(_pointcloud_texture.first, _pointcloud_texture.second)));
     }
-    ROS_INFO("num_filters: %d", static_cast<int>(_filters.size()));
+    ROS_DEBUG("num_filters: %d", static_cast<int>(_filters.size()));
 }
 
 
@@ -1437,6 +1488,164 @@ void BaseRealSenseNode::pose_callback(rs2::frame frame)
     }
 }
 
+void BaseRealSenseNode::setupServices()
+{
+    _toggleColorService = _node_handle.advertiseService("toggleColor", &BaseRealSenseNode::toggleColorCb, this);
+}
+
+bool BaseRealSenseNode::toggleColorCb(std_srvs::SetBool::Request& request, std_srvs::SetBool::Response& response)
+{
+    response.success = static_cast<uint8_t>(toggleColor(static_cast<bool>(request.data)));
+    return true;
+}
+
+bool BaseRealSenseNode::toggleColor(bool enable)
+{
+    // Get sensor handler.
+    auto& sens = _sensors[COLOR];
+
+    // If the sensor is already in the desired mode, return.
+    if(_enable[COLOR] == enable) {
+        return true;
+    }
+
+    // Try to set the sensor mode.
+    try
+    {
+        _enable[COLOR] = enable;
+        if (enable) {
+            ROS_INFO_STREAM("Enabled RGB stream");            
+            sens.start(_syncer);
+        } 
+        else
+        {
+            ROS_INFO_STREAM("Disabled RGB stream");
+            sens.stop();
+        }
+    }
+    catch(const rs2::wrong_api_call_sequence_error& ex)
+    {
+        ROS_DEBUG_STREAM("toggleSensors: " << ex.what());
+        return false;
+    }
+
+    return true;
+}
+
+
+void BaseRealSenseNode::fetchFrameMetadata(const rs2::frame& frame, FrameMetadata& metadata_container) {
+    /** Timestamp metadata **/
+    //* Middle/half of the exposure time. (Device clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP))
+        metadata_container.sensor_capture_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_SENSOR_TIMESTAMP);   // usec
+
+    //* Timestamp after onboard processing finishes. (Device clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP))
+        metadata_container.frame_processing_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_TIMESTAMP);  // usec
+
+    //* Timestamp after frames are transmitted to PC, and kernel receives them. (PC clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP))
+        metadata_container.kernel_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_BACKEND_TIMESTAMP);  // msec
+    
+    //* Timestamp after frames become available. (PC clock)
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL))
+        metadata_container.driver_arrival_timestamp = frame.get_frame_metadata(RS2_FRAME_METADATA_TIME_OF_ARRIVAL);    // msec
+
+    /** Frame generation **/
+    //* Gain level.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_GAIN_LEVEL))
+        metadata_container.gain_level = frame.get_frame_metadata(RS2_FRAME_METADATA_GAIN_LEVEL);
+
+    //* Whether auto exposure was enabled.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_AUTO_EXPOSURE))
+        metadata_container.auto_exposure = frame.get_frame_metadata(RS2_FRAME_METADATA_AUTO_EXPOSURE);
+
+    //* Exposure time.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE))
+        metadata_container.exposure_time = frame.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_EXPOSURE);                // usec
+
+    /** Frame counter **/
+    //* Frame counter value.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER))
+        metadata_container.frame_counter = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_COUNTER);
+
+    //* Actual frames-per-second (FPS) value.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_ACTUAL_FPS))
+        metadata_container.actual_fps = frame.get_frame_metadata(RS2_FRAME_METADATA_ACTUAL_FPS);
+
+    /** Laser projector status **/
+    //* Whether the laser projector was enabled.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE))
+        metadata_container.laser_enabled = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER_MODE);
+
+    //* Power level of the laser projector.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER))
+        metadata_container.laser_power = frame.get_frame_metadata(RS2_FRAME_METADATA_FRAME_LASER_POWER);
+
+    /** Physical state of the device **/
+    //* Temperature.
+    if(frame.supports_frame_metadata(RS2_FRAME_METADATA_TEMPERATURE))
+        metadata_container.temperature = frame.get_frame_metadata(RS2_FRAME_METADATA_TEMPERATURE);
+}
+
+void BaseRealSenseNode::publishTimestampingInformation(const ros::Time& t, const rs2::frame& frame, const FrameMetadata& metadata, const TimeOffsets& time_offsets) {
+    if(0 != _timestamping_info_publisher.getNumSubscribers())
+    {
+        TimestampingInfoMsg msg;
+
+        // Msg header.
+        msg.header.stamp = t;
+        msg.header.frame_id  = _base_frame_id;
+
+        // Device characteristics.
+        msg.device_model = _dev.get_info(RS2_CAMERA_INFO_NAME);
+        msg.device_name = _namespace;
+        if (frame.is<rs2::frameset>())
+        {
+            auto frameset = frame.as<rs2::frameset>();
+            for (auto it = frameset.begin(); it != frameset.end(); ++it)
+            {
+                auto f = (*it);
+                auto stream_type = f.get_profile().stream_type();
+                auto stream_index = f.get_profile().stream_index();
+                msg.active_streams.push_back(rs2_stream_to_string(stream_type) + std::to_string(stream_index));
+            }
+        }
+
+        // Frame metadata.
+        msg.frame_metadata = metadata.toRosMsg();
+
+        // Time offsets.
+        msg.time_offsets = time_offsets.toRosMsg();
+
+        // Timestamp estimation.
+        if(_timestamping_method == timestamping_method::varying_offsets)
+        {
+            msg.timestamping_method = std::string("varying_offsets");
+        } 
+        else if (_timestamping_method == timestamping_method::fixed_offset) 
+        {
+            msg.timestamping_method = std::string("fixed_offset");
+        }
+        else
+        {
+            if(_sync_frames)
+            {
+                msg.timestamping_method = std::string("baseline-enable_sync");
+            }
+            else
+            {
+                msg.timestamping_method = std::string("baseline");
+            }
+
+        }
+        msg.fixed_offset_value = _fixed_time_offset;
+
+        _timestamping_info_publisher.publish(msg);
+        ROS_DEBUG("timestamping info of stream published");
+    }
+}
+
 void BaseRealSenseNode::frame_callback(rs2::frame frame)
 {
     _synced_imu_publisher->Pause();
@@ -1447,21 +1656,63 @@ void BaseRealSenseNode::frame_callback(rs2::frame frame)
         // We compute a ROS timestamp which is based on an initial ROS time at point of first frame,
         // and the incremental timestamp from the camera.
         // In sync mode the timestamp is based on ROS time
+        //* ANYbotics: an additional factor was introduced to correct timestamps. This factor
+        //*            can be provided by the user as a fixed quantity (fixed_time_offset), or 
+        //*            computed using metadata from the device.
         bool placeholder_false(false);
         if (_is_initialized_time_base.compare_exchange_strong(placeholder_false, true) )
         {
             setBaseTime(frame_time, RS2_TIMESTAMP_DOMAIN_SYSTEM_TIME == frame.get_frame_timestamp_domain());
         }
 
+        //* Metadata container.
+        FrameMetadata frame_metadata;
+
+        //* Fetch metadata from device.
+        fetchFrameMetadata(frame, frame_metadata);
+
+        TimeOffsets timeOffsets;
+
         ros::Time t;
-        if (_sync_frames)
+        // Timestamp computation.
+        if(_timestamping_method == timestamping_method::baseline)
         {
-            t = ros::Time::now();
+            if (_sync_frames)
+            {
+                t = ros::Time::now();
+            }
+            else
+            {
+                t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame_time - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
+            }    
         }
-        else
+        else 
         {
-            t = ros::Time(_ros_time_base.toSec()+ (/*ms*/ frame_time - /*ms*/ _camera_time_base) / /*ms to seconds*/ 1000);
+            //* Timestamp correction.
+            ros::Duration timestamp_offset(0);
+            if(_timestamping_method == timestamping_method::fixed_offset)
+            {
+                timeOffsets.wire_transmission_offset = _fixed_time_offset;                                                                              // sec
+                timestamp_offset = ros::Duration(-1.0 * timeOffsets.wire_transmission_offset);
+            } else if (_timestamping_method == timestamping_method::varying_offsets)
+            {
+                //* Computation of time-varying offsets.
+                timeOffsets.frame_acquisition_offset =  (frame_metadata.frame_processing_timestamp - frame_metadata.sensor_capture_timestamp) * 1e-6;   // sec
+                timeOffsets.wire_transmission_offset = _fixed_time_offset;                                                                              // sec
+                timeOffsets.driver_handover_offset = (frame_metadata.driver_arrival_timestamp - frame_metadata.kernel_arrival_timestamp) * 1e-3;        // sec
+
+                //* Time offset = (frame acquisition offset) + (*fixed* transmission offset) + (driver handover offset)
+                timestamp_offset = ros::Duration(-1.0 * (timeOffsets.frame_acquisition_offset + timeOffsets.wire_transmission_offset + timeOffsets.driver_handover_offset));
+            }
+
+            //* Timestamp computation.
+            t = ros::Time::now() + timestamp_offset;
+
+            ROS_DEBUG("Timestamp correction = %.17g", timestamp_offset.toSec());
         }
+
+        //* Publish timestamping information.
+        publishTimestampingInformation(t, frame, frame_metadata, timeOffsets);
 
         if (frame.is<rs2::frameset>())
         {
@@ -1641,7 +1892,7 @@ void BaseRealSenseNode::setBaseTime(double frame_time, bool warn_no_metadata)
 
 void BaseRealSenseNode::setupStreams()
 {
-	ROS_INFO("setupStreams...");
+	ROS_DEBUG("setupStreams...");
     try{
 		// Publish image stream info
         for (auto& profiles : _enabled_profiles)
@@ -1662,7 +1913,7 @@ void BaseRealSenseNode::setupStreams()
         for (const std::pair<stream_index_pair, std::vector<rs2::stream_profile>>& profile : _enabled_profiles)
         {
             std::string module_name = _sensors[profile.first].get_info(RS2_CAMERA_INFO_NAME);
-            ROS_INFO_STREAM("insert " << rs2_stream_to_string(profile.second.begin()->stream_type())
+            ROS_DEBUG_STREAM("insert " << rs2_stream_to_string(profile.second.begin()->stream_type())
               << " to " << module_name);
             profiles[module_name].insert(profiles[module_name].begin(),
                                             profile.second.begin(),
@@ -1692,6 +1943,7 @@ void BaseRealSenseNode::setupStreams()
         ROS_ERROR_STREAM("Unknown exception has occured!");
         throw;
     }
+
 }
 
 void BaseRealSenseNode::updateStreamCalibData(const rs2::video_stream_profile& video_profile)
@@ -1854,7 +2106,7 @@ void BaseRealSenseNode::SetBaseStream()
     {
         throw std::runtime_error("No known base_stream found for transformations.");
     }
-    ROS_INFO_STREAM("SELECTED BASE:" << base_stream->first << ", " << base_stream->second);
+    ROS_DEBUG_STREAM("SELECTED BASE:" << base_stream->first << ", " << base_stream->second);
 
     _base_stream = *base_stream;
 }

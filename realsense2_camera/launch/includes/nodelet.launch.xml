@@ -37,12 +37,12 @@
   <arg name="enable_gyro"         default="true"/>
   <arg name="enable_accel"        default="true"/>
 
-  <arg name="enable_pointcloud"   default="false"/>
+  <arg name="enable_pointcloud"         default="false"/>
   <arg name="pointcloud_texture_stream" default="RS2_STREAM_COLOR"/>  <!-- use RS2_STREAM_ANY to avoid using texture -->
   <arg name="pointcloud_texture_index"  default="0"/>
 
-  <arg name="enable_sync"         default="false"/>
-  <arg name="align_depth"         default="false"/>
+  <arg name="enable_sync"               default="false"/>
+  <arg name="align_depth"               default="false"/>
 
   <arg name="base_frame_id"             default="$(arg tf_prefix)_link"/>
   <arg name="depth_frame_id"            default="$(arg tf_prefix)_depth_frame"/>
@@ -89,9 +89,13 @@
   <arg name="unite_imu_method"         default="none"/> <!-- Options are: [none, copy, linear_interpolation] -->
   <arg name="allow_no_texture_points"  default="false"/>
 
+  <!-- Options: baseline, fixed_offset, varying_offsets -->
+  <arg name="timestamping_method"      default="baseline"/>
+  <arg name="fixed_time_offset"        default="0.0"/>
+  <arg name="disable_color_startup"    default="false"/>
 
   <node unless="$(arg external_manager)" pkg="nodelet" type="nodelet" name="$(arg manager)" args="manager" output="screen" required="$(arg required)"/>
-  <node pkg="nodelet" type="nodelet" name="realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)" required="$(arg required)">
+  <node pkg="nodelet" type="nodelet" name="any_realsense2_camera" args="load realsense2_camera/RealSenseNodeFactory $(arg manager)" required="$(arg required)">
     <param name="serial_no"                type="str"  value="$(arg serial_no)"/>
     <param name="usb_port_id"              type="str"  value="$(arg usb_port_id)"/>
     <param name="device_type"              type="str"  value="$(arg device_type)"/>
@@ -103,6 +107,10 @@
     <param name="pointcloud_texture_index"  type="int" value="$(arg pointcloud_texture_index)"/>
     <param name="enable_sync"              type="bool" value="$(arg enable_sync)"/>
     <param name="align_depth"              type="bool" value="$(arg align_depth)"/>
+
+    <param name="timestamping_method"      type="str"    value="$(arg timestamping_method)"/>
+    <param name="fixed_time_offset"        type="double" value="$(arg fixed_time_offset)"/>
+    <param name="disable_color_startup"    type="bool"  value="$(arg disable_color_startup)"/>
 
     <param name="fisheye_width"            type="int"  value="$(arg fisheye_width)"/>
     <param name="fisheye_height"           type="int"  value="$(arg fisheye_height)"/>
@@ -118,14 +126,14 @@
     <param name="color_height"             type="int"  value="$(arg color_height)"/>
     <param name="enable_color"             type="bool" value="$(arg enable_color)"/>
 
-    <param name="infra_width"             type="int"  value="$(arg infra_width)"/>
-    <param name="infra_height"            type="int"  value="$(arg infra_height)"/>
+    <param name="infra_width"              type="int"  value="$(arg infra_width)"/>
+    <param name="infra_height"             type="int"  value="$(arg infra_height)"/>
     <param name="enable_infra1"            type="bool" value="$(arg enable_infra1)"/>
     <param name="enable_infra2"            type="bool" value="$(arg enable_infra2)"/>
 
     <param name="fisheye_fps"              type="int"  value="$(arg fisheye_fps)"/>
     <param name="depth_fps"                type="int"  value="$(arg depth_fps)"/>
-    <param name="infra_fps"               type="int"  value="$(arg infra_fps)"/>
+    <param name="infra_fps"                type="int"  value="$(arg infra_fps)"/>
     <param name="color_fps"                type="int"  value="$(arg color_fps)"/>
     <param name="gyro_fps"                 type="int"  value="$(arg gyro_fps)"/>
     <param name="accel_fps"                type="int"  value="$(arg accel_fps)"/>

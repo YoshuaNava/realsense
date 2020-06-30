@@ -13,6 +13,7 @@
 #include <sys/time.h>
 #include <regex>
 
+using namespace any_realsense2_camera;
 using namespace realsense2_camera;
 
 #define REALSENSE_ROS_EMBEDDED_VERSION_STR (VAR_ARG_STRING(VERSION: REALSENSE_ROS_MAJOR_VERSION.REALSENSE_ROS_MINOR_VERSION.REALSENSE_ROS_PATCH_VERSION))
@@ -23,8 +24,7 @@ PLUGINLIB_EXPORT_CLASS(realsense2_camera::RealSenseNodeFactory, nodelet::Nodelet
 RealSenseNodeFactory::RealSenseNodeFactory():
 	_is_alive(true)
 {
-	ROS_INFO("RealSense ROS v%s", REALSENSE_ROS_VERSION_STR);
-	ROS_INFO("Running with LibRealSense v%s", RS2_API_VERSION_STR);
+	ROS_INFO_STREAM("Running with LibRealSense v" << RS2_API_VERSION_STR << " and RealSense ROS v" << REALSENSE_ROS_VERSION_STR);
 
 	auto severity = rs2_log_severity::RS2_LOG_SEVERITY_WARN;
 	tryGetLogSeverity(severity);

@@ -5,7 +5,7 @@ import subprocess
 import os
 
 r = rospkg.RosPack()
-path = r.get_path('realsense2_description')
+path = r.get_path('any_realsense2_description')
 
 
 def run_xacro_in_file(filename):

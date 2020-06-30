@@ -38,8 +38,9 @@
   <arg name="pointcloud_texture_stream" default="RS2_STREAM_COLOR"/>
   <arg name="pointcloud_texture_index"  default="0"/>
 
-  <arg name="enable_sync"               default="false"/>
-  <arg name="align_depth"               default="false"/>
+  <arg name="enable_sync"           default="false"/>
+  <arg name="align_depth"           default="false"/>
+  <arg name="fixed_time_offset"     default="0.0"/>
 
   <arg name="publish_tf"                default="true"/>
   <arg name="tf_publish_rate"           default="0"/>
@@ -55,7 +56,7 @@
   <arg name="allow_no_texture_points"   default="false"/>
 
   <group ns="$(arg camera)">
-    <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
+    <include file="$(find any_realsense2_camera)/launch/includes/nodelet.launch.xml">
       <arg name="tf_prefix"                value="$(arg tf_prefix)"/>
       <arg name="external_manager"         value="$(arg external_manager)"/>
       <arg name="manager"                  value="$(arg manager)"/>
@@ -69,6 +70,7 @@
       <arg name="pointcloud_texture_index"  value="$(arg pointcloud_texture_index)"/>
       <arg name="enable_sync"              value="$(arg enable_sync)"/>
       <arg name="align_depth"              value="$(arg align_depth)"/>
+      <arg name="fixed_time_offset"        value="$(arg fixed_time_offset)"/>
 
       <arg name="fisheye_width"            value="$(arg fisheye_width)"/>
       <arg name="fisheye_height"           value="$(arg fisheye_height)"/>

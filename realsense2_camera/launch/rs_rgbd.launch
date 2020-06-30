@@ -21,7 +21,7 @@ to publish XYZRGB point cloud like an OpenNI camera.
 NOTICE: To use this launch file you must first install ros package rgbd_launch.
 
 To launch Realsense with software registeration (ROS Image Pipeline and rgbd_launch):
-    $ roslaunch realsense2_camera rs_rgbd.launch
+    $ roslaunch any_realsense2_camera rs_rgbd.launch
 Processing enabled by ROS driver:
     # depth rectification
 Processing enabled by this node:
@@ -30,7 +30,7 @@ Processing enabled by this node:
     # pointcloud_xyzrgb generation
 
 To launch Realsense with hardware registeration (ROS Realsense depth alignment):
-    $ roslaunch realsense2_camera rs_rgbd.launch align_depth:=true
+    $ roslaunch any_realsense2_camera rs_rgbd.launch align_depth:=true
 Processing enabled by ROS driver:
     # depth rectification
     # depth registration
@@ -81,6 +81,7 @@ Processing enabled by this node:
   <arg name="enable_pointcloud"   default="false"/>
   <arg name="enable_sync"         default="true"/>
   <arg name="align_depth"         default="true"/>
+  <arg name="fixed_time_offset"   default="0.0"/>
   <arg name="filters"             default=""/>
 
   <!-- rgbd_launch specific arguments -->
@@ -114,7 +115,7 @@ Processing enabled by this node:
   <group ns="$(arg camera)">
 
     <!-- Launch the camera device nodelet-->
-    <include file="$(find realsense2_camera)/launch/includes/nodelet.launch.xml">
+    <include file="$(find any_realsense2_camera)/launch/includes/nodelet.launch.xml">
       <arg name="external_manager"         value="$(arg external_manager)"/>
       <arg name="manager"                  value="$(arg manager)"/>
       <arg name="tf_prefix"                value="$(arg tf_prefix)"/>
@@ -126,6 +127,7 @@ Processing enabled by this node:
       <arg name="enable_pointcloud"        value="$(arg enable_pointcloud)"/>
       <arg name="enable_sync"              value="$(arg enable_sync)"/>
       <arg name="align_depth"              value="$(arg align_depth)"/>
+      <arg name="fixed_time_offset"        value="$(arg fixed_time_offset)"/>
 
       <arg name="fisheye_width"            value="$(arg fisheye_width)"/>
       <arg name="fisheye_height"           value="$(arg fisheye_height)"/>

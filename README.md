@@ -1,3 +1,25 @@
+# NOTE: This is a fork from the official repository
+
+**The following changes have been done:**
+
+* Catkinized librealsense2
+* Implemented workaround for the depth auto-exposure not being initialized correctly.
+* Implemented timestamp correction methods that try to remove any delays between frame acquisition and driver availability.
+* Implemented a publisher that enables real-time monitoring of timestamp correction.
+* Implemented a method to toggle color on/off. Having color off improves timestamp correction accuracy.
+* Added a ROS parameter to toggle color off after the node has started operation with color ON.
+* Disabled failing test `dd_full_scale-test`.
+
+Build with
+
+    catkin build realsense2_camera
+
+Successfully tested with firmware 05.09.02.00 and 05.09.14.00.
+
+Instructions on how to update the firmware can be found on the [Intel homepage](https://downloadcenter.intel.com/download/27954/Latest-Firmware-for-Intel-RealSense-D400-Product-Family?v=t).
+
+-----------------
+
 # ROS Wrapper for Intel&reg; RealSense&trade; Devices
 These are packages for using Intel RealSense cameras (D400 series SR300 camera and T265 Tracking Module) with ROS.
 
@@ -30,7 +52,7 @@ The following instructions are written for ROS Kinetic, on **Ubuntu 16.04** but 
     Notice:
     * The version of librealsense2 is almost always behind the one availeable in RealSense&trade; official repository.
     * librealsense2 is not built to use native v4l2 driver but the less stable RS-USB protocol. That is because the last is more general and operational on a larger variety of platforms.
-    * realsense2_description is available as a separate debian package of ROS distribution. It includes the 3D-models of the devices and is necessary for running launch files that include these models (i.e. rs_d435_camera_with_model.launch). It can be installed by typing:
+    * any_realsense2_description is available as a separate debian package of ROS distribution. It includes the 3D-models of the devices and is necessary for running launch files that include these models (i.e. rs_d435_camera_with_model.launch). It can be installed by typing:
     `sudo apt-get install ros-$ROS_VER-realsense2-description`
 
 
@@ -229,10 +251,10 @@ The wrapper publishes static transformations(TFs). The Frame Ids are divided int
 - base_link: For example: camera_link. A reference frame for the device. In D400 series and SR300 it is the depth frame. In T265, the pose frame.
 
 
-### realsense2_description package:
+### any_realsense2_description package:
 For viewing included models, a separate package is included. For example:
 ```bash
-roslaunch realsense2_description view_d415_model.launch
+roslaunch any_realsense2_description view_d415_model.launch
 ```
 
 ### Unit tests:
